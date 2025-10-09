@@ -27,14 +27,21 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const response = await api.login({ ...formData, platform: "WEB" })
+      const response = await api.login({ ...formData, platform: "WEB", versionApp: "V1.0.0", deviceToken:  "aa" })
       
       // Store tokens
       localStorage.setItem("token", response.data.accessToken)
       localStorage.setItem("refreshToken", response.data.refreshToken)
-      
+      localStorage.setItem("role", response.data.role)
+      localStorage.setItem("userId", response.data.userId)
+      if (response.data.role === "ADMIN") {
+        localStorage.setItem("isAdmin", "true")
+        router.push("/jobs")
+      }else if (response.data.role === "APPLICANT") {
+        router.push("/jobs")
+      }
       // Redirect to dashboard or home
-      router.push("/dashboard")
+      
     } catch (err: any) {
       setError(err.message || "Đăng nhập thất bại")
     } finally {

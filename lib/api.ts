@@ -49,21 +49,21 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     return response.json()
   } catch (error) {
     clearTimeout(timeoutId)
-    
+
     if (error instanceof ApiError) {
       throw error
     }
-    
+
     // Handle network errors
     if (error instanceof Error) {
-      if (error.name === 'AbortError') {
+      if (error.name === "AbortError") {
         throw new ApiError(408, "Request timeout - Server không phản hồi")
       }
-      if (error.message.includes('Failed to fetch')) {
+      if (error.message.includes("Failed to fetch")) {
         throw new ApiError(0, "Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy không.")
       }
     }
-    
+
     throw new ApiError(500, "Lỗi không xác định: " + (error as Error).message)
   }
 }
@@ -98,8 +98,11 @@ export interface JobPost {
   updateAt: string
   employerId: string
   employerName: string
+  companyName?: string
+  logoUrl?: string
   categoryId: string
   categoryName: string
+  searchableText?: string
 }
 
 export interface JobCategory {
@@ -171,8 +174,14 @@ export interface Applicant {
 
 export const api = {
   // Authentication
-  login: (credentials: { username: string; password: string; platform?: string }) =>
-    fetchApi<ApiResponse<{ accessToken: string; refreshToken: string }>>("/auth/login", {
+  login: (credentials: {
+    username: string
+    password: string
+    platform?: string
+    versionApp?: string
+    deviceToken?: string
+  }) =>
+    fetchApi<ApiResponse<{ accessToken: string; refreshToken: string; role: string; userId: string }>>("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     }),
@@ -235,8 +244,7 @@ export const api = {
     return fetchApi<ApiResponse<JobPostPageResponse>>(`/job-post/?${queryParams.toString()}`)
   },
 
-  getJobById: (id: string) => 
-    fetchApi<ApiResponse<JobPost>>(`/job-post/${id}`),
+  getJobById: (id: string) => fetchApi<ApiResponse<JobPost>>(`/job-post/${id}`),
 
   getActiveJobs: (params?: {
     keyword?: string
@@ -266,7 +274,9 @@ export const api = {
     fetchApi<ApiResponse<any>>(`/job-post/location/${location}?page=${page}&size=${size}`),
 
   getJobsBySalaryRange: (minSalary: number, maxSalary: number, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/job-post/salary-range?minSalary=${minSalary}&maxSalary=${maxSalary}&page=${page}&size=${size}`),
+    fetchApi<ApiResponse<any>>(
+      `/job-post/salary-range?minSalary=${minSalary}&maxSalary=${maxSalary}&page=${page}&size=${size}`,
+    ),
 
   getJobsByCategory: (categoryId: number, page = 0, size = 10) =>
     fetchApi<ApiResponse<any>>(`/job-post/category/${categoryId}?page=${page}&size=${size}`),
@@ -354,8 +364,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getApplicationById: (id: string) =>
-    fetchApi<ApiResponse<any>>(`/application/${id}`),
+  getApplicationById: (id: string) => fetchApi<ApiResponse<any>>(`/application/${id}`),
 
   getApplicationsByApplicant: (applicantId: string, page = 0, size = 10) =>
     fetchApi<ApiResponse<any>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`),
@@ -453,8 +462,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getEmployerById: (id: string) =>
-    fetchApi<ApiResponse<Employer>>(`/employer/${id}`),
+  getEmployerById: (id: string) => fetchApi<ApiResponse<Employer>>(`/employer/${id}`),
 
   getAllEmployers: (params?: {
     keyword?: string
@@ -492,8 +500,7 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getApplicantById: (id: string) =>
-    fetchApi<ApiResponse<Applicant>>(`/applicant/${id}`),
+  getApplicantById: (id: string) => fetchApi<ApiResponse<Applicant>>(`/applicant/${id}`),
 
   getAllApplicants: (params?: {
     keyword?: string
@@ -531,14 +538,11 @@ export const api = {
     return fetchApi<ApiResponse<JobCategoryPageResponse>>(`/job-category/?${queryParams.toString()}`)
   },
 
-  getAllJobCategories: () =>
-    fetchApi<ApiResponse<JobCategory[]>>("/job-category/all"),
+  getAllJobCategories: () => fetchApi<ApiResponse<JobCategory[]>>("/job-category/all"),
 
-  getJobCategoryById: (id: number) =>
-    fetchApi<ApiResponse<JobCategory>>(`/job-category/${id}`),
+  getJobCategoryById: (id: number) => fetchApi<ApiResponse<JobCategory>>(`/job-category/${id}`),
 
-  getJobCategoryByName: (name: string) =>
-    fetchApi<ApiResponse<JobCategory>>(`/job-category/exact-name/${name}`),
+  getJobCategoryByName: (name: string) => fetchApi<ApiResponse<JobCategory>>(`/job-category/exact-name/${name}`),
 
   // Enhanced Job Posts with Categories
   getJobsByCategoryId: (categoryId: number, page = 0, size = 10) =>
@@ -566,4 +570,34 @@ export const api = {
 
     return fetchApi<ApiResponse<JobPostPageResponse>>(`/job-post/search?${queryParams.toString()}`)
   },
+
+searchJobPosts: (params: {
+  keywords?: string
+  jobStatus?: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
+  jobType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
+  location?: string
+  minSalary?: number
+  maxSalary?: number
+  experience?: string
+  categoryId?: number
+  employerId?: string
+  postedAfter?: string
+  closingBefore?: string
+  page?: number
+  size?: number
+}) => {
+  // Lọc bỏ các field null/undefined/chuỗi rỗng để tránh gửi dữ liệu thừa
+  const filteredParams = Object.fromEntries(
+    Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== "")
+  )
+
+  return fetchApi<ApiResponse<JobPostPageResponse>>(`/search/job-posts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(filteredParams),
+  })
 }
+}
+
