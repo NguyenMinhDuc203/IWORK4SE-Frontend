@@ -48,10 +48,25 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "An error occurred" }))
-      throw new ApiError(response.status, error.message || "An error occurred")
+      // Try parse JSON first
+      let message = response.statusText || "An error occurred"
+      try {
+        const errJson = await response.json()
+        // Common shapes: { message }, { error: { message } }, wrapped { status, message, data }
+        message = errJson?.message || errJson?.error?.message || errJson?.data?.message || message
+      } catch {
+        // Fallback to raw text body if not JSON
+        try {
+          const text = await response.text()
+          if (text) message = text
+        } catch {
+          // ignore
+        }
+      }
+      throw new ApiError(response.status, message)
     }
 
+    // Happy path
     return response.json()
   } catch (error) {
     clearTimeout(timeoutId)
@@ -332,12 +347,15 @@ export const api = {
   createJobPost: (data: {
     title: string
     description: string
-    requirements: string
-    responsibilities: string
+    jobPosition: string
     location: string
-    salary: number
-    jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
-    categoryId: number
+    experience: string
+    minSalary: number
+    maxSalary: number
+    vacancies: number
+    jobType: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
+    employerId: string
+    categoryId?: string
   }) =>
     fetchApi<ApiResponse<any>>("/job-post/", {
       method: "POST",

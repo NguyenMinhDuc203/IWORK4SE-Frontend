@@ -33,16 +33,22 @@ export default function LoginPage() {
       localStorage.setItem("token", response.data.accessToken)
       localStorage.setItem("refreshToken", response.data.refreshToken)
       localStorage.setItem("role", response.data.role)
+      // Keep backward compatibility with components reading `userType`
+      localStorage.setItem("userType", response.data.role)
       localStorage.setItem("userId", response.data.userId)
       localStorage.setItem("fullName", response.data.fullName)
       localStorage.setItem("email", response.data.email)
       localStorage.setItem("phone", response.data.phone)
+      // Notify other components (e.g., Header) to re-render auth state
+      window.dispatchEvent(new Event("auth:changed"))
 
       if (response.data.role === "ADMIN") {
         localStorage.setItem("isAdmin", "true")
         router.push("/jobs")
       }else if (response.data.role === "APPLICANT") {
         router.push("/jobs")
+      }else if (response.data.role === "EMPLOYER") {
+        router.push("/")
       }
       // Redirect to dashboard or home
       

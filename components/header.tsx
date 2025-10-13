@@ -28,6 +28,28 @@ export function Header() {
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
     setIsLoggedIn(!!token)
     setUserType(userTypeFromStorage)
+
+    const syncAuthState = () => {
+      const t = localStorage.getItem("token")
+      const r = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
+      setIsLoggedIn(!!t)
+      setUserType(r)
+    }
+
+    const handleAuthChanged = () => syncAuthState()
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "token" ||e.key === "userType") {
+        syncAuthState()
+      }
+    }
+
+    window.addEventListener("auth:changed", handleAuthChanged as EventListener)
+    window.addEventListener("storage", handleStorage)
+
+    return () => {
+      window.removeEventListener("auth:changed", handleAuthChanged as EventListener)
+      window.removeEventListener("storage", handleStorage)
+    }
   }, [])
 
   const handleLogout = () => {
@@ -36,6 +58,7 @@ export function Header() {
     localStorage.removeItem("userType")
     setIsLoggedIn(false)
     setUserType(null)
+    window.dispatchEvent(new Event("auth:changed"))
     window.location.href = "/"
   }
 
