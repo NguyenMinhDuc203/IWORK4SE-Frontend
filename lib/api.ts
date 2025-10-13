@@ -28,6 +28,12 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     headers["Authorization"] = `Bearer ${token}`
   }
 
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  } else {
+    delete headers['Content-Type'];
+  }
+
   // Add timeout and better error handling
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
@@ -135,7 +141,7 @@ export interface CV {
   applicantId: string
   fileName: string
   filePath: string
-  uploadedAt: string
+  uploadedDate: string
 }
 
 export interface SavedJob {
@@ -172,6 +178,17 @@ export interface Applicant {
   education?: string
 }
 
+export interface Application {
+  id: string
+  applicantId: string
+  jobPostId: string
+  cvId: string
+  coverLetter?: string
+  status: "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+  appliedAt: string
+  updatedAt: string
+}
+
 export const api = {
   // Authentication
   login: (credentials: {
@@ -181,7 +198,17 @@ export const api = {
     versionApp?: string
     deviceToken?: string
   }) =>
-    fetchApi<ApiResponse<{ accessToken: string; refreshToken: string; role: string; userId: string }>>("/auth/login", {
+    fetchApi<
+      ApiResponse<{
+        accessToken: string
+        refreshToken: string
+        role: string
+        userId: string
+        fullName: string
+        email: string
+        phone: string
+      }>
+    >("/auth/login", {
       method: "POST",
       body: JSON.stringify(credentials),
     }),
@@ -346,8 +373,9 @@ export const api = {
 
   // Applications
   createApplication: (data: {
-    jobPostId: string
+    jobId: string
     cvId: string
+    applicantId: string
     coverLetter?: string
   }) =>
     fetchApi<ApiResponse<any>>("/application/", {
@@ -364,19 +392,19 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getApplicationById: (id: string) => fetchApi<ApiResponse<any>>(`/application/${id}`),
+  getApplicationById: (id: string) => fetchApi<ApiResponse<Application>>(`/application/${id}`),
 
   getApplicationsByApplicant: (applicantId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<Application[]>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`),
 
   getApplicationsByJob: (jobId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/application/job/${jobId}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<Application[]>>(`/application/job/${jobId}?page=${page}&size=${size}`),
 
   getApplicationsByEmployer: (employerId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/application/employer/${employerId}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<Application[]>>(`/application/employer/${employerId}?page=${page}&size=${size}`),
 
   getApplicationsByStatus: (status: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/application/status/${status}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<Application[]>>(`/application/status/${status}?page=${page}&size=${size}`),
 
   updateApplicationStatus: (id: string, status: string) =>
     fetchApi<ApiResponse<any>>(`/application/${id}/status?status=${status}`, {
@@ -408,10 +436,9 @@ export const api = {
 
   // CV Management
   uploadCV: (formData: FormData) =>
-    fetchApi<ApiResponse<any>>("/cv/upload", {
+    fetchApi<ApiResponse<any>>("/cv/", {
       method: "POST",
-      body: formData,
-      headers: {}, // Let browser set Content-Type for FormData
+      body: formData
     }),
 
   getCVsByApplicant: (applicantId: string, page = 0, size = 10) =>
@@ -571,33 +598,32 @@ export const api = {
     return fetchApi<ApiResponse<JobPostPageResponse>>(`/job-post/search?${queryParams.toString()}`)
   },
 
-searchJobPosts: (params: {
-  keywords?: string
-  jobStatus?: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
-  jobType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
-  location?: string
-  minSalary?: number
-  maxSalary?: number
-  experience?: string
-  categoryId?: number
-  employerId?: string
-  postedAfter?: string
-  closingBefore?: string
-  page?: number
-  size?: number
-}) => {
-  // Lọc bỏ các field null/undefined/chuỗi rỗng để tránh gửi dữ liệu thừa
-  const filteredParams = Object.fromEntries(
-    Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== "")
-  )
+  searchJobPosts: (params: {
+    keywords?: string
+    jobStatus?: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
+    jobType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
+    location?: string
+    minSalary?: number
+    maxSalary?: number
+    experience?: string
+    categoryId?: number
+    employerId?: string
+    postedAfter?: string
+    closingBefore?: string
+    page?: number
+    size?: number
+  }) => {
+    // Lọc bỏ các field null/undefined/chuỗi rỗng để tránh gửi dữ liệu thừa
+    const filteredParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== ""),
+    )
 
-  return fetchApi<ApiResponse<JobPostPageResponse>>(`/search/job-posts`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(filteredParams),
-  })
+    return fetchApi<ApiResponse<JobPostPageResponse>>(`/search/job-posts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(filteredParams),
+    })
+  },
 }
-}
-

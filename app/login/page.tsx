@@ -34,6 +34,10 @@ export default function LoginPage() {
       localStorage.setItem("refreshToken", response.data.refreshToken)
       localStorage.setItem("role", response.data.role)
       localStorage.setItem("userId", response.data.userId)
+      localStorage.setItem("fullName", response.data.fullName)
+      localStorage.setItem("email", response.data.email)
+      localStorage.setItem("phone", response.data.phone)
+
       if (response.data.role === "ADMIN") {
         localStorage.setItem("isAdmin", "true")
         router.push("/jobs")

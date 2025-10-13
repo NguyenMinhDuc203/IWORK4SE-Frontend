@@ -6,11 +6,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  Building2, 
+import {
+  MapPin,
+  Clock,
+  DollarSign,
+  Building2,
   Star,
   Heart,
   Share2,
@@ -18,20 +18,26 @@ import {
   Calendar,
   CheckCircle,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react"
-import { api, JobPost } from "@/lib/api"
+import { api, type JobPost } from "@/lib/api"
+import { ApplyJobDialog } from "@/components/apply-job-dialog"
+import { LoginDialog } from "@/components/login-dialog"
+import { log } from "console"
 
 export default function JobDetailPage() {
   const params = useParams()
   const jobId = params.id as string
-  
+ 
+
   const [job, setJob] = useState<JobPost | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isApplying, setIsApplying] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  const [showApplyDialog, setShowApplyDialog] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
 
   useEffect(() => {
     if (jobId) {
@@ -51,25 +57,17 @@ export default function JobDetailPage() {
     }
   }
 
-  const handleApply = async () => {
-    setIsApplying(true)
-    try {
-      // Check if user is logged in
-      const token = localStorage.getItem("token")
-      if (!token) {
-        // Redirect to login
-        window.location.href = "/login"
-        return
-      }
-
-      // For now, just show success message
-      // In real implementation, you would need to select a CV first
-      setSuccess("Đơn ứng tuyển đã được gửi thành công!")
-    } catch (error: any) {
-      setError(error.message || "Không thể gửi đơn ứng tuyển")
-    } finally {
-      setIsApplying(false)
+  const handleApply = () => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setShowLoginDialog(true)
+    } else {
+      setShowApplyDialog(true)
     }
+  }
+
+  const handleLoginSuccess = () => {
+    setShowApplyDialog(true)
   }
 
   const handleSaveJob = async () => {
@@ -166,20 +164,23 @@ export default function JobDetailPage() {
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <DollarSign className="h-4 w-4 mr-2" />
-                    {job.minSalary && job.maxSalary 
+                    {job.minSalary && job.maxSalary
                       ? `${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()} VNĐ`
-                      : job.minSalary 
+                      : job.minSalary
                         ? `Từ ${job.minSalary.toLocaleString()} VNĐ`
-                        : job.maxSalary 
+                        : job.maxSalary
                           ? `Đến ${job.maxSalary.toLocaleString()} VNĐ`
-                          : "Thỏa thuận"
-                    }
+                          : "Thỏa thuận"}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Clock className="h-4 w-4 mr-2" />
-                    {job.jobType === "FULL_TIME" ? "Toàn thời gian" :
-                     job.jobType === "PART_TIME" ? "Bán thời gian" :
-                     job.jobType === "CONTRACT" ? "Hợp đồng" : "Thực tập"}
+                    {job.jobType === "FULL_TIME"
+                      ? "Toàn thời gian"
+                      : job.jobType === "PART_TIME"
+                        ? "Bán thời gian"
+                        : job.jobType === "CONTRACT"
+                          ? "Hợp đồng"
+                          : "Thực tập"}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Users className="h-4 w-4 mr-2" />
@@ -191,11 +192,11 @@ export default function JobDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center text-muted-foreground">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Đăng ngày: {new Date(job.postedDate).toLocaleDateString('vi-VN')}
+                    Đăng ngày: {new Date(job.postedDate).toLocaleDateString("vi-VN")}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Hạn nộp: {new Date(job.closingDate).toLocaleDateString('vi-VN')}
+                    Hạn nộp: {new Date(job.closingDate).toLocaleDateString("vi-VN")}
                   </div>
                 </div>
 
@@ -260,7 +261,7 @@ export default function JobDetailPage() {
                     <AlertDescription>{success}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 {error && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertDescription>{error}</AlertDescription>
@@ -268,36 +269,16 @@ export default function JobDetailPage() {
                 )}
 
                 <div className="space-y-4">
-                  <Button 
-                    onClick={handleApply} 
-                    className="w-full" 
-                    size="lg"
-                    disabled={isApplying}
-                  >
-                    {isApplying ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang gửi...
-                      </>
-                    ) : (
-                      "Ứng tuyển ngay"
-                    )}
+                  <Button onClick={handleApply} className="w-full" size="lg">
+                    Ứng tuyển ngay
                   </Button>
 
                   <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={handleSaveJob}
-                    >
-                      <Heart className={`h-4 w-4 mr-2 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
-                      {isSaved ? 'Đã lưu' : 'Lưu việc làm'}
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
+                      <Heart className={`h-4 w-4 mr-2 ${isSaved ? "fill-red-500 text-red-500" : ""}`} />
+                      {isSaved ? "Đã lưu" : "Lưu việc làm"}
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={handleShare}
-                    >
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />
                       Chia sẻ
                     </Button>
@@ -322,7 +303,7 @@ export default function JobDetailPage() {
                       <p className="text-sm text-muted-foreground">{job.categoryName || "Công nghệ thông tin"}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center text-muted-foreground">
                       <Users className="h-4 w-4 mr-2" />
@@ -338,7 +319,7 @@ export default function JobDetailPage() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full bg-transparent">
                     Xem trang công ty
                   </Button>
                 </div>
@@ -370,6 +351,10 @@ export default function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      <ApplyJobDialog open={showApplyDialog} onOpenChange={setShowApplyDialog} jobId={jobId} jobTitle={job.title} />
+
+      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} onLoginSuccess={handleLoginSuccess} />
     </div>
   )
 }
