@@ -364,15 +364,17 @@ export const api = {
 
   updateJobPost: (data: {
     id: string
-    title?: string
-    description?: string
-    requirements?: string
-    responsibilities?: string
-    location?: string
-    salary?: number
-    jobType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
-    status?: "ACTIVE" | "INACTIVE" | "EXPIRED"
-    categoryId?: number
+    employerId: string
+    title: string
+    description: string
+    jobPosition: string
+    location: string
+    experience: string
+    minSalary: number
+    maxSalary: number
+    vacancies: number
+    jobType: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
+    categoryId?: string
   }) =>
     fetchApi<ApiResponse<any>>("/job-post/update", {
       method: "PUT",

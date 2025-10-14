@@ -1,0 +1,311 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loader2 } from "lucide-react"
+import { api, type JobCategory, type JobPost } from "@/lib/api"
+
+export default function EditJobPage() {
+  const router = useRouter()
+  const params = useParams()
+  const jobId = params.id as string
+  
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingJob, setIsLoadingJob] = useState(true)
+  const [error, setError] = useState("")
+  const [categories, setCategories] = useState<JobCategory[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+  const [job, setJob] = useState<JobPost | null>(null)
+
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    jobPosition: "",
+    location: "",
+    experience: "",
+    minSalary: 0,
+    maxSalary: 0,
+    vacancies: 1,
+    jobType: "INTERNSHIP" as "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER",
+    categoryId: "",
+  })
+
+  useEffect(() => {
+    const role = localStorage.getItem("userType")
+    if (role !== "EMPLOYER") {
+      router.push("/login")
+      return
+    }
+    if (jobId) {
+      void fetchJobDetails()
+      void fetchCategories()
+    }
+  }, [router, jobId])
+
+  const fetchJobDetails = async () => {
+    setIsLoadingJob(true)
+    try {
+      const res = await api.getJobById(jobId)
+      const jobData = res.data
+      setJob(jobData)
+      
+      // Populate form with job data
+      setForm({
+        title: jobData.title || "",
+        description: jobData.description || "",
+        jobPosition: jobData.jobPosition || "",
+        location: jobData.location || "",
+        experience: jobData.experience || "",
+        minSalary: jobData.minSalary || 0,
+        maxSalary: jobData.maxSalary || 0,
+        vacancies: jobData.vacancies || 1,
+        jobType: (jobData.jobType as any) || "INTERNSHIP",
+        categoryId: jobData.categoryId || "",
+      })
+    } catch (e: any) {
+      setError(e?.message || "Không thể tải thông tin việc làm")
+    } finally {
+      setIsLoadingJob(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    setIsLoadingCategories(true)
+    try {
+      // Try no-pagination first
+      const resAll = await api.getAllJobCategories()
+      setCategories(resAll.data)
+    } catch (e) {
+      try {
+        // Fallback chain if one endpoint is forbidden
+        const resPaged = await api.getJobCategories({ page: 0, size: 100 })
+        setCategories(resPaged.data?.content || [])
+      } catch {
+        setCategories([])
+      }
+    } finally {
+      setIsLoadingCategories(false)
+    }
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    
+    // Validate jobId exists
+    if (!jobId) {
+      setError("ID tin tuyển dụng không hợp lệ")
+      setIsLoading(false)
+      return
+    }
+    
+    try {
+      console.log("Updating job with ID:", jobId)
+      const employerId = localStorage.getItem("userId") || ""
+      await api.updateJobPost({
+        id: jobId,
+        employerId: employerId,
+        title: form.title,
+        description: form.description,
+        jobPosition: form.jobPosition,
+        location: form.location,
+        experience: form.experience,
+        minSalary: form.minSalary,
+        maxSalary: form.maxSalary,
+        vacancies: form.vacancies,
+        jobType: form.jobType,
+        categoryId: form.categoryId,
+      })
+      router.push("/employer/jobs")
+    } catch (e: any) {
+      console.error("Update job error:", e)
+      setError(e?.message || "Cập nhật tin tuyển dụng thất bại")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoadingJob) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </div>
+    )
+  }
+
+  if (!job) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold mb-2">Không tìm thấy việc làm</h2>
+          <p className="text-muted-foreground mb-4">Tin tuyển dụng này không tồn tại hoặc bạn không có quyền chỉnh sửa.</p>
+          <Button onClick={() => router.push("/employer/jobs")}>
+            Quay lại danh sách
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader>
+          <CardTitle>Chỉnh sửa tin tuyển dụng</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Tiêu đề</Label>
+              <Input 
+                id="title" 
+                value={form.title} 
+                onChange={(e) => setForm({ ...form, title: e.target.value })} 
+                required 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Mô tả công việc</Label>
+              <Textarea 
+                id="description" 
+                value={form.description} 
+                onChange={(e) => setForm({ ...form, description: e.target.value })} 
+                required 
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="jobPosition">Vị trí công việc</Label>
+                <Input 
+                  id="jobPosition" 
+                  value={form.jobPosition} 
+                  onChange={(e) => setForm({ ...form, jobPosition: e.target.value })} 
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Kinh nghiệm làm việc</Label>
+                <Select value={form.experience} onValueChange={(v: string) => setForm({ ...form, experience: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn kinh nghiệm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="<1 năm">Dưới 1 năm</SelectItem>
+                    <SelectItem value="1-3 năm">1-3 năm</SelectItem>
+                    <SelectItem value="3-5 năm">3-5 năm</SelectItem>
+                    <SelectItem value=">5 năm">Trên 5 năm</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">Địa điểm làm việc</Label>
+                <Input 
+                  id="location" 
+                  value={form.location} 
+                  onChange={(e) => setForm({ ...form, location: e.target.value })} 
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minSalary">Lương tối thiểu</Label>
+                <Input 
+                  id="minSalary" 
+                  type="number" 
+                  step={100000} 
+                  min={0} 
+                  value={form.minSalary} 
+                  onChange={(e) => setForm({ ...form, minSalary: Number(e.target.value) })} 
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="maxSalary">Lương tối đa</Label>
+                <Input 
+                  id="maxSalary" 
+                  type="number" 
+                  step={100000} 
+                  min={0} 
+                  value={form.maxSalary} 
+                  onChange={(e) => setForm({ ...form, maxSalary: Number(e.target.value) })} 
+                  required 
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vacancies">Số lượng tuyển</Label>
+                <Input 
+                  id="vacancies" 
+                  type="number" 
+                  min={1} 
+                  value={form.vacancies} 
+                  onChange={(e) => setForm({ ...form, vacancies: Number(e.target.value) })} 
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Hình thức làm việc</Label>
+                <Select value={form.jobType} onValueChange={(v: any) => setForm({ ...form, jobType: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn cấp bậc" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNSHIP">Intern</SelectItem>
+                    <SelectItem value="FRESHER">Fresher</SelectItem>
+                    <SelectItem value="JUNIOR">Junior</SelectItem>
+                    <SelectItem value="SENIOR">Senior</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Phân loại</Label>
+                <Select value={form.categoryId} onValueChange={(v: string) => setForm({ ...form, categoryId: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingCategories ? "Đang tải..." : "Chọn phân loại"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>{c.categoryName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin"/> Đang cập nhật...</>) : "Cập nhật tin"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => router.push("/employer/jobs")}>
+                Hủy
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
