@@ -1,39 +1,108 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Search, 
-  User, 
-  Bell, 
-  Menu, 
+import { Switch } from "@/components/ui/switch"
+import Image from "next/image"
+import {
+  Search,
+  User,
+  Bell,
+  Menu,
   X,
-  Briefcase,
   Building2,
   Users,
-  LogOut
+  LogOut,
+  FileText,
+  Eye,
+  Lock,
+  Heart,
+  Briefcase,
+  Edit,
+  ChevronDown,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userType, setUserType] = useState<"APPLICANT" | "EMPLOYER" | null>(null)
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const [isJobSeeking, setIsJobSeeking] = useState(true)
+  const [userName, setUserName] = useState("User")
+  const [isPinned, setIsPinned] = useState(false);
 
-  useEffect(() => {
-    // Check if user is logged in
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const checkAuthState = () => {
     const token = localStorage.getItem("token")
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
+    const fullName = localStorage.getItem("fullName")
     setIsLoggedIn(!!token)
     setUserType(userTypeFromStorage)
+    if (fullName) setUserName(fullName)
+  }
+
+  useEffect(() => {
+    checkAuthState()
+
+    const handleStorageChange = () => {
+      checkAuthState()
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+    }
   }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsUserDropdownOpen(false);
+        setIsPinned(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+  const handleClick = () => {
+
+    const newPinnedState = !isPinned;
+    setIsPinned(newPinnedState);
+    setIsUserDropdownOpen(newPinnedState);
+  };
+
+  const handleMouseEnter = () => {
+    setIsUserDropdownOpen(true);
+  };
+
+
+  const handleMouseLeave = () => {
+    if (!isPinned) {
+      setIsUserDropdownOpen(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("refreshToken")
     localStorage.removeItem("userType")
+    localStorage.removeItem("role")
+    localStorage.removeItem("userId")
+    localStorage.removeItem("fullName")
+    localStorage.removeItem("email")
+    localStorage.removeItem("phone")
+    localStorage.removeItem("isAdmin")
     setIsLoggedIn(false)
     setUserType(null)
     window.location.href = "/"
@@ -45,54 +114,42 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <Briefcase className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold text-primary">iWork4SE</span>
+            <Image
+              src="/assets/Full_logo_iwork4se_no_background.png"
+              alt="iWork4SE Logo"
+              width={260}
+              height={100}
+              priority
+              className="h-26 w-auto"
+            />
           </Link>
 
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm việc làm, công ty..."
-                className="pl-10 pr-4"
-              />
+              <Input placeholder="Tìm việc làm, công ty..." className="pl-10 pr-4" />
             </div>
           </div>
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link 
-              href="/jobs" 
+            <Link
+              href="/jobs"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Việc làm
             </Link>
-            <Link 
-              href="/companies" 
+            <Link
+              href="/companies"
               className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
             >
               Công ty
             </Link>
-            
+
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
-                {userType === "APPLICANT" && (
-                  <>
-                    <Link href="/applications">
-                      <Button variant="ghost" size="sm">
-                        <Users className="h-4 w-4 mr-2" />
-                        Đơn ứng tuyển
-                      </Button>
-                    </Link>
-                    <Link href="/saved-jobs">
-                      <Button variant="ghost" size="sm">
-                        Việc đã lưu
-                      </Button>
-                    </Link>
-                  </>
-                )}
-                
+
                 {userType === "EMPLOYER" && (
                   <>
                     <Link href="/employer/dashboard">
@@ -108,31 +165,205 @@ export function Header() {
                     </Link>
                   </>
                 )}
-                
+
                 <Button variant="ghost" size="sm">
                   <Bell className="h-4 w-4" />
                 </Button>
-                
-                <div className="relative group">
-                  <Button variant="ghost" size="sm">
-                    <User className="h-4 w-4 mr-2" />
-                    Tài khoản
-                  </Button>
-                  <div className="absolute right-0 mt-2 w-48 bg-background border rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                    <div className="py-1">
-                      <Link href="/profile" className="block px-4 py-2 text-sm hover:bg-muted">
-                        Hồ sơ cá nhân
-                      </Link>
-                      <button 
-                        onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm hover:bg-muted"
-                      >
-                        <LogOut className="h-4 w-4 mr-2 inline" />
-                        Đăng xuất
-                      </button>
+
+                <div className="relative pb-2" ref={dropdownRef}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClick}
+
+                    className="flex items-center gap-2 hover:text-current"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
                     </div>
-                  </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium">{userName}</span>
+                      {userType === "APPLICANT" && <span className="text-xs text-primary">Đang tìm việc</span>}
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+
+
+                  {isUserDropdownOpen && (
+                    <div className="absolute left-0 mt-2 w-96 bg-background border rounded-lg shadow-lg"  >
+                      <div className="p-4">
+                        {/* User info header */}
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-6 w-6 text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium">{userName}</h3>
+                            {userType === "APPLICANT" && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-sm text-primary">Đang tìm việc</span>
+                                <Switch
+                                  checked={isJobSeeking}
+                                  onCheckedChange={setIsJobSeeking}
+                                  className="data-[state=checked]:bg-primary"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* CV Actions - Only for applicants */}
+                        {/* {userType === "APPLICANT" && (
+                          <div className="grid grid-cols-2 gap-3 mb-4">
+                            <Link href="/cv/create">
+                              <div className="bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-lg p-4 text-center cursor-pointer hover:opacity-90 transition-opacity">
+                                <div className="h-16 flex items-center justify-center mb-2">
+                                  <FileText className="h-8 w-8 text-white" />
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
+                                >
+                                  TẠO CV MỚI
+                                </Button>
+                              </div>
+                            </Link>
+                            <Link href="/cv/analyze">
+                              <div className="bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg p-4 text-center cursor-pointer hover:opacity-90 transition-opacity">
+                                <div className="h-16 flex items-center justify-center mb-2">
+                                  <Eye className="h-8 w-8 text-white" />
+                                </div>
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                                >
+                                  PHÂN TÍCH CV
+                                </Button>
+                              </div>
+                            </Link>
+                          </div>
+                        )} */}
+
+                        {/* Menu items */}
+                        <div className="space-y-1">
+                          {userType === "APPLICANT" ? (
+                            <>
+                              <Link
+                                href="/profile"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <User className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Quản lý hồ sơ</span>
+                              </Link>
+                              <Link
+                                href="/profile/edit"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Edit className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Cập nhật hồ sơ</span>
+                              </Link>
+                              <Link
+                                href="/applied-jobs"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Briefcase className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Việc làm đã ứng tuyển</span>
+                              </Link>
+                              <Link
+                                href="/saved-jobs"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Heart className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Việc làm đã lưu</span>
+                              </Link>
+                              {/* <Link
+                                href="/viewed-jobs"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <FileText className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Việc làm đã xem</span>
+                              </Link> */}
+                              {/* <Link
+                                href="/profile-views"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Eye className="h-5 w-5 text-primary" />
+                                <span className="text-sm">NTD đã xem hồ sơ</span>
+                              </Link> */}
+                            </>
+                          ) : (
+                            <>
+                              <Link
+                                href="/employer/dashboard"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Building2 className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Dashboard</span>
+                              </Link>
+                              <Link
+                                href="/employer/jobs"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Briefcase className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Quản lý việc làm</span>
+                              </Link>
+                            </>
+                          )}
+
+                          <Link
+                            href="/change-password"
+                            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                          >
+                            <Lock className="h-5 w-5 text-primary" />
+                            <span className="text-sm">Đổi mật khẩu</span>
+                          </Link>
+
+                          <button
+                            onClick={() => {
+                              handleLogout()
+                              setIsUserDropdownOpen(false)
+                            }}
+                            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 transition-colors w-full text-left bg-red-50/50"
+                          >
+                            <LogOut className="h-5 w-5 text-red-600" />
+                            <span className="text-sm text-red-600">Đăng xuất</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+                {userType === "APPLICANT" && (
+                  <>
+                    <Link href="/employer/register">
+                      <Button size="sm" className="bg-[#1e7efc] hover:bg-[#2ea3ff] text-white font-medium">
+                        NHÀ TUYỂN DỤNG
+                      </Button>
+                    </Link>
+                    {/* <Link href="/applications">
+                      <Button variant="ghost" size="sm">
+                        <Users className="h-4 w-4 mr-2" />
+                        Đơn ứng tuyển
+                      </Button>
+                    </Link>
+                    <Link href="/saved-jobs">
+                      <Button variant="ghost" size="sm">
+                        Việc đã lưu
+                      </Button>
+                    </Link> */}
+                  </>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -142,7 +373,7 @@ export function Header() {
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button size="sm">
+                  <Button size="sm" className="bg-primary hover:bg-primary/90">
                     Đăng ký
                   </Button>
                 </Link>
@@ -151,12 +382,7 @@ export function Header() {
           </nav>
 
           {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
+          <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
@@ -165,10 +391,7 @@ export function Header() {
         <div className="md:hidden pb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Tìm việc làm, công ty..."
-              className="pl-10 pr-4"
-            />
+            <Input placeholder="Tìm việc làm, công ty..." className="pl-10 pr-4" />
           </div>
         </div>
 
@@ -176,34 +399,41 @@ export function Header() {
         {isMenuOpen && (
           <div className="md:hidden border-t bg-background">
             <nav className="py-4 space-y-2">
-              <Link 
-                href="/jobs" 
+              <Link
+                href="/jobs"
                 className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Việc làm
               </Link>
-              <Link 
-                href="/companies" 
+              <Link
+                href="/companies"
                 className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Công ty
               </Link>
-              
+
               {isLoggedIn ? (
                 <>
                   {userType === "APPLICANT" && (
                     <>
-                      <Link 
-                        href="/applications" 
+                      <Link
+                        href="/employer/register"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        NHÀ TUYỂN DỤNG
+                      </Link>
+                      <Link
+                        href="/applications"
                         className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Đơn ứng tuyển
                       </Link>
-                      <Link 
-                        href="/saved-jobs" 
+                      <Link
+                        href="/saved-jobs"
                         className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -211,18 +441,18 @@ export function Header() {
                       </Link>
                     </>
                   )}
-                  
+
                   {userType === "EMPLOYER" && (
                     <>
-                      <Link 
-                        href="/employer/dashboard" 
+                      <Link
+                        href="/employer/dashboard"
                         className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Dashboard
                       </Link>
-                      <Link 
-                        href="/employer/jobs" 
+                      <Link
+                        href="/employer/jobs"
                         className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                         onClick={() => setIsMenuOpen(false)}
                       >
@@ -230,16 +460,16 @@ export function Header() {
                       </Link>
                     </>
                   )}
-                  
-                  <Link 
-                    href="/profile" 
+
+                  <Link
+                    href="/profile"
                     className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Hồ sơ cá nhân
                   </Link>
-                  
-                  <button 
+
+                  <button
                     onClick={() => {
                       handleLogout()
                       setIsMenuOpen(false)
@@ -251,15 +481,15 @@ export function Header() {
                 </>
               ) : (
                 <>
-                  <Link 
-                    href="/login" 
+                  <Link
+                    href="/login"
                     className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Đăng nhập
                   </Link>
-                  <Link 
-                    href="/register" 
+                  <Link
+                    href="/register"
                     className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
                     onClick={() => setIsMenuOpen(false)}
                   >

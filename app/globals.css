@@ -4,12 +4,13 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Primary - Deep Blue inspired by JobsGo and design brief */
-  --primary: oklch(0.28 0.08 250);
+  /* Updated color scheme to match iWork4SE logo - light blue, medium blue, and navy */
+  /* Primary - Medium Blue from logo */
+  --primary: #1e7efc;
   --primary-foreground: oklch(0.98 0 0);
 
-  /* Accent - Teal/Cyan for CTAs */
-  --accent: oklch(0.65 0.15 195);
+  /* Accent - Light Blue from logo */
+  --accent: klch(61.47% 0.14759 250.363);
   --accent-foreground: oklch(0.98 0 0);
 
   /* Background - Clean white */
@@ -24,14 +25,14 @@
   --muted: oklch(0.96 0 0);
   --muted-foreground: oklch(0.5 0 0);
 
-  /* Secondary - Medium gray */
-  --secondary: oklch(0.93 0 0);
+  /* Secondary - Light blue tint */
+  --secondary: oklch(0.93 0.02 230);
   --secondary-foreground: oklch(0.2 0 0);
 
   /* Border - Subtle gray */
   --border: oklch(0.9 0 0);
   --input: oklch(0.9 0 0);
-  --ring: oklch(0.28 0.08 250);
+  --ring: #1e7efc;
 
   /* Popover */
   --popover: oklch(1 0 0);
@@ -41,74 +42,64 @@
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
 
-  /* Chart colors */
-  --chart-1: oklch(0.65 0.15 195);
-  --chart-2: oklch(0.28 0.08 250);
-  --chart-3: oklch(0.7 0.12 160);
-  --chart-4: oklch(0.6 0.18 280);
-  --chart-5: oklch(0.75 0.15 80);
+  /* Chart colors - blue tones */
+  --chart-1: oklch(0.7 0.12 220);
+  --chart-2: oklch(0.55 0.15 230);
+  --chart-3: #1e7efc;
+  --chart-4: oklch(0.6 0.1 210);
+  --chart-5: oklch(0.75 0.08 225);
 
   --radius: 0.5rem;
 
   /* Sidebar */
   --sidebar: oklch(0.99 0 0);
   --sidebar-foreground: oklch(0.15 0 0);
-  --sidebar-primary: oklch(0.28 0.08 250);
+  --sidebar-primary: #1e7efc;
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.96 0 0);
   --sidebar-accent-foreground: oklch(0.2 0 0);
   --sidebar-border: oklch(0.9 0 0);
-  --sidebar-ring: oklch(0.28 0.08 250);
+  --sidebar-ring: #1e7efc;
 }
 
 .dark {
-  /* Updated dark mode colors to match Vercel dashboard aesthetic */
-  /* Primary - Bright accent for dark mode */
-  --primary: oklch(0.75 0.15 195);
+  /* Updated dark mode to use blue tones from logo */
+  --primary: #1e7efc;
   --primary-foreground: oklch(0.1 0 0);
 
-  /* Accent - Vibrant teal */
-  --accent: oklch(0.7 0.15 195);
+  --accent: #1e7efc;
   --accent-foreground: oklch(0.1 0 0);
 
-  /* Background - True black like Vercel */
   --background: oklch(0.08 0 0);
   --foreground: oklch(0.95 0 0);
 
-  /* Card - Slightly lighter than background */
   --card: oklch(0.12 0 0);
   --card-foreground: oklch(0.95 0 0);
 
-  /* Muted - Dark gray */
   --muted: oklch(0.18 0 0);
   --muted-foreground: oklch(0.6 0 0);
 
-  /* Secondary - Medium dark gray */
   --secondary: oklch(0.15 0 0);
   --secondary-foreground: oklch(0.95 0 0);
 
-  /* Border - Subtle dark border */
   --border: oklch(0.2 0 0);
   --input: oklch(0.2 0 0);
-  --ring: oklch(0.75 0.15 195);
+  --ring: #1e7efc;
 
-  /* Popover */
   --popover: oklch(0.12 0 0);
   --popover-foreground: oklch(0.95 0 0);
 
-  /* Destructive */
   --destructive: oklch(0.5 0.2 25);
   --destructive-foreground: oklch(0.95 0 0);
 
-  /* Sidebar - Match Vercel's dark sidebar */
   --sidebar: oklch(0.08 0 0);
   --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.75 0.15 195);
+  --sidebar-primary: #1e7efc;
   --sidebar-primary-foreground: oklch(0.1 0 0);
   --sidebar-accent: oklch(0.15 0 0);
   --sidebar-accent-foreground: oklch(0.95 0 0);
   --sidebar-border: oklch(0.2 0 0);
-  --sidebar-ring: oklch(0.75 0.15 195);
+  --sidebar-ring: #1e7efc;
 }
 
 @theme inline {

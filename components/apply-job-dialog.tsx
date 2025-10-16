@@ -80,6 +80,7 @@ export function ApplyJobDialog({ open, onOpenChange, jobId, jobTitle }: ApplyJob
             const formData = new FormData()
             formData.append("file", file)
             formData.append("applicantId", localStorage.getItem("userId") || "")
+            formData.append("fileName", file.name)
 
             const response = await api.uploadCV(formData)
             if (response.data) {
@@ -175,7 +176,7 @@ export function ApplyJobDialog({ open, onOpenChange, jobId, jobTitle }: ApplyJob
                                             </p>
                                         </label>
                                         <a
-                                            href={cv.filePath}
+                                            href={cv.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-sm text-primary hover:underline"
