@@ -1,21 +1,28 @@
 import Link from "next/link"
 import { Briefcase, Mail, Phone, MapPin } from "lucide-react"
-
+import Image from "next/image"
 export function Footer() {
   return (
     <footer className="bg-muted/50 border-t">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo & Description */}
-          <div className="space-y-4">
-            <Link href="/" className="flex items-center space-x-2">
-              <Briefcase className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold text-primary">iWork4SE</span>
+          <div className="max-w-xs -mt-4.5">
+            <Link href="/" className="block">
+              <Image
+                src="/assets/Full_logo_iwork4se_no_background.png"
+                alt="iWork4SE Logo"
+                width={260}
+                height={100}
+                priority
+                className="h-20 w-auto -ml-4.5"
+              />
             </Link>
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-0 text-sm text-muted-foreground">
               Nền tảng tìm việc làm IT chuyên nghiệp, kết nối ứng viên với nhà tuyển dụng hàng đầu Việt Nam.
             </p>
           </div>
+
 
           {/* Quick Links */}
           <div className="space-y-4">

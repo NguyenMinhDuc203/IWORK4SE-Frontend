@@ -19,6 +19,7 @@ import {
   CheckCircle,
   Loader2,
   ArrowLeft,
+  Briefcase 
 } from "lucide-react"
 import { api, type JobPost } from "@/lib/api"
 import { ApplyJobDialog } from "@/components/apply-job-dialog"
@@ -28,7 +29,7 @@ import { log } from "console"
 export default function JobDetailPage() {
   const params = useParams()
   const jobId = params.id as string
- 
+
 
   const [job, setJob] = useState<JobPost | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -56,6 +57,35 @@ export default function JobDetailPage() {
       setIsLoading(false)
     }
   }
+  const formatJobDescription = (description: string) => {
+    if (!description) {
+      return "";
+    }
+    const withBold = description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    const withLineBreaks = withBold.replace(/\n/g, '<br />');
+
+    return withLineBreaks;
+  };
+  const formatSalaryShort = (salary: number) => {
+
+    if (salary >= 1000000) {
+      const millions = salary / 1000000;
+      return `${Number(millions.toFixed(1))} Triệu`;
+    }
+
+    return salary.toLocaleString();
+  };
+
+  const formatMinSalaryShort = (salary: number) => {
+
+    if (salary >= 1000000) {
+      const millions = salary / 1000000;
+      return `${Number(millions.toFixed(1))}`;
+    }
+
+    return salary.toLocaleString();
+  };
 
   const handleApply = () => {
     const token = localStorage.getItem("token")
@@ -139,7 +169,15 @@ export default function JobDetailPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Building2 className="h-8 w-8 text-primary" />
+                      {job.logoUrl ? (
+                        <img
+                          src={job.logoUrl || "/placeholder.svg"}
+                          alt={job.companyName || "Company logo"}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="h-6 w-6 text-primary" />
+                      )}
                     </div>
                     <div>
                       <CardTitle className="text-2xl mb-2">{job.title}</CardTitle>
@@ -148,12 +186,12 @@ export default function JobDetailPage() {
                       </CardDescription>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  {/* <div className="flex items-center space-x-2">
                     <div className="flex items-center text-yellow-500">
                       <Star className="h-5 w-5 fill-current" />
                       <span className="ml-1">4.8</span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </CardHeader>
               <CardContent>
@@ -162,29 +200,34 @@ export default function JobDetailPage() {
                     <MapPin className="h-4 w-4 mr-2" />
                     {job.location}
                   </div>
+
                   <div className="flex items-center text-muted-foreground">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    {job.minSalary && job.maxSalary
-                      ? `${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()} VNĐ`
-                      : job.minSalary
-                        ? `Từ ${job.minSalary.toLocaleString()} VNĐ`
-                        : job.maxSalary
-                          ? `Đến ${job.maxSalary.toLocaleString()} VNĐ`
-                          : "Thỏa thuận"}
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {job.jobType === "FULL_TIME"
-                      ? "Toàn thời gian"
-                      : job.jobType === "PART_TIME"
-                        ? "Bán thời gian"
-                        : job.jobType === "CONTRACT"
-                          ? "Hợp đồng"
-                          : "Thực tập"}
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    {job.jobType === "INTERNSHIP"
+                      ? "Internship"
+                      : job.jobType === "FRESHER"
+                        ? "Fresher"
+                        : job.jobType === "JUNIOR"
+                          ? "Junior"
+                          : job.jobType === "SENIOR"
+                            ? "Senior"
+                            : job.jobType === "MANAGER"
+                              ? "Manager"
+                              : "Không xác định"}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Users className="h-4 w-4 mr-2" />
                     {job.vacancies ? `${job.vacancies} vị trí` : "Không giới hạn"}
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <DollarSign className="h-4 w-6 mr-1" />
+                    {job.minSalary && job.maxSalary
+                      ? `${formatMinSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
+                      : job.minSalary
+                        ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
+                        : job.maxSalary
+                          ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
+                          : "Thỏa thuận"}
                   </div>
                 </div>
 
@@ -200,12 +243,12 @@ export default function JobDetailPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                {/* <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">React</span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">TypeScript</span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Next.js</span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Node.js</span>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
 
@@ -215,9 +258,10 @@ export default function JobDetailPage() {
                 <CardTitle>Mô tả công việc</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose max-w-none">
-                  <p className="whitespace-pre-wrap">{job.description}</p>
-                </div>
+                <div
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: formatJobDescription(job.description) }}
+                />
               </CardContent>
             </Card>
 

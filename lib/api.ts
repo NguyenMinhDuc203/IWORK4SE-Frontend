@@ -115,7 +115,7 @@ export interface JobPost {
   closingDate: string
   vacancies: number
   jobStatus: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
-  jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
+  jobType: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
   updateAt: string
   employerId: string
   employerName: string
@@ -155,7 +155,7 @@ export interface CV {
   id: string
   applicantId: string
   fileName: string
-  filePath: string
+  url: string
   uploadedDate: string
 }
 
@@ -194,14 +194,24 @@ export interface Applicant {
 }
 
 export interface Application {
-  id: string
-  applicantId: string
-  jobPostId: string
-  cvId: string
-  coverLetter?: string
-  status: "PENDING" | "APPROVED" | "REJECTED" | "WITHDRAWN"
-  appliedAt: string
-  updatedAt: string
+  id: string;
+  applicantId: string;
+  applicantName: string;
+  jobId: string;
+  jobTitle: string;
+  jobPosition: string;
+  logoUrl: string;
+  companyName: string;
+  location: string;
+  minSalary: number;
+  maxSalary: number;
+  closingDate: string;  
+  appliedDate: string;  
+  status: "PENDING" |"VIEWED"|"APPROVED"|"REJECTED"|"WITHDRAWN"
+  cvFileName: string;
+  cvId: string;
+  cvUrl: string;
+  updateAt: string;    
 }
 
 export const api = {
@@ -415,7 +425,9 @@ export const api = {
   getApplicationById: (id: string) => fetchApi<ApiResponse<Application>>(`/application/${id}`),
 
   getApplicationsByApplicant: (applicantId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<Application[]>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<any>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`, {
+      method: "GET",
+    }),
 
   getApplicationsByJob: (jobId: string, page = 0, size = 10) =>
     fetchApi<ApiResponse<Application[]>>(`/application/job/${jobId}?page=${page}&size=${size}`),
@@ -485,8 +497,41 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getSavedJobsByApplicant: (applicantId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/saved-job/applicant/${applicantId}?page=${page}&size=${size}`),
+  toggleSaveJob: async (jobPostId: string) => {
+    const applicantId = localStorage.getItem("userId");
+    if (!applicantId) throw new Error("Missing applicantId in localStorage");
+
+    const url = `/saved-job/toggle?applicantId=${applicantId}&jobId=${jobPostId}`;
+
+    return fetchApi<ApiResponse<any>>(url, {
+      method: "POST",
+    });
+  },
+  getSavedJobsByApplicant: ({
+    applicantId,
+    page = 0, 
+    size = 10, 
+  }: {
+    applicantId: string;
+    page?: number;
+    size?: number;
+  }) => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    });
+
+    const url = `/saved-job/applicant/${applicantId}?${queryParams.toString()}`;
+
+    return fetchApi<ApiResponse<any>>(url, {
+      method: "GET",
+    });
+  },
+
+
+
+  // getSavedJobsByApplicant: (applicantId: string, page = 0, size = 10) =>
+  //   fetchApi<ApiResponse<any>>(`/saved-job/applicant/${applicantId}?page=${page}&size=${size}`),
 
   deleteSavedJob: (id: string) =>
     fetchApi<ApiResponse<any>>(`/saved-job/${id}`, {
@@ -621,7 +666,7 @@ export const api = {
   searchJobPosts: (params: {
     keywords?: string
     jobStatus?: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
-    jobType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
+    jobType?: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
     location?: string
     minSalary?: number
     maxSalary?: number

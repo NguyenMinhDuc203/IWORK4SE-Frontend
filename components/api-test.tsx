@@ -21,6 +21,7 @@ export default function ApiTestComponent() {
     setConnectionStatus('checking')
     setErrorMessage('')
     setDebugInfo(null)
+     
     
     try {
       // Test basic API connection by fetching active jobs
