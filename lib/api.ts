@@ -166,16 +166,39 @@ export interface Employer {
   logoUrl?: string
 }
 
+export interface Certificate {
+  certificateId: string;
+  certificateName: string;
+  issuingOrganization: string;
+  issueDate: string;
+  expirationDate?: string;
+  certificateUrl?: string;
+  notes?: string;
+}
+
+
+
+
+
 export interface Applicant {
-  id: string
-  userId: string
-  phoneNumber?: string
-  address?: string
-  dateOfBirth?: string
-  gender?: "MALE" | "FEMALE" | "OTHER"
-  experience?: string
-  skills?: string
-  education?: string
+  id?: string; 
+  userId?: string; 
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  birthday: string;
+  gender: "MALE" | "FEMALE";
+  careerObjective?: string;
+  yearsOfExperience: number;
+  skills: string[];
+  certificates: Certificate[];
+  universityName: string;
+  major: string;
+  degreeLevel: string;
+  graduationYear: number;
+  gpa: number;
 }
 
 export interface Application {
@@ -557,16 +580,7 @@ export const api = {
     }),
 
   // Applicant Management
-  updateApplicant: (data: {
-    userId: string
-    phoneNumber?: string
-    address?: string
-    dateOfBirth?: string
-    gender?: "MALE" | "FEMALE" | "OTHER"
-    experience?: string
-    skills?: string
-    education?: string
-  }) =>
+  updateApplicant: (data: Applicant) =>
     fetchApi<ApiResponse<any>>("/applicant/update", {
       method: "PUT",
       body: JSON.stringify(data),

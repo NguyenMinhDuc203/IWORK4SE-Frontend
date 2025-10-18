@@ -21,6 +21,7 @@ interface ApplicationWithJob {
   appliedAt: string
   status: string,
   cvFileName: string
+  rawStatus: string
 }
 
 export default function AppliedJobsPage() {
@@ -104,6 +105,7 @@ export default function AppliedJobsPage() {
           appliedAt: formatDate(app.appliedDate), // Sử dụng hàm định dạng
           status: mapStatusToVietnamese(app.status), // Sử dụng hàm chuyển đổi status
           cvFileName: app.cvFileName,
+          rawStatus: app.status,
         }));
 
         setApplications(formattedApplications);
@@ -171,10 +173,6 @@ export default function AppliedJobsPage() {
         <div className="mb-6 text-sm text-gray-600">
           <Link href="/" className="text-primary hover:underline">
             Trang chủ
-          </Link>
-          {" / "}
-          <Link href="/dashboard" className="text-primary hover:underline">
-            Quản lý hồ sơ
           </Link>
           {" / "}
           <span>Việc làm đã ứng tuyển</span>
@@ -286,17 +284,20 @@ export default function AppliedJobsPage() {
                 </div>
 
                 {/* Cancel Button */}
-                <div className="flex-shrink-0">
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleCancelApplication(application.id)}
-                    className="flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Hủy bỏ
-                  </Button>
-                </div>
+
+                {!['WITHDRAWN', 'REJECTED', 'APPROVED'].includes(application.rawStatus) && (
+                  <div className="flex-shrink-0">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleCancelApplication(application.id)}
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Hủy bỏ
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
           ))}

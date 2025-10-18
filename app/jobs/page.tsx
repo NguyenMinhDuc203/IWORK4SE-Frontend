@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MapPin, Clock, Briefcase, DollarSign, Building2, Star, Filter, Flag, Loader2 } from "lucide-react"
+import { Search, MapPin, Briefcase, DollarSign, Building2, Filter, Flag, Loader2 } from "lucide-react"
 import { api, type JobPost, type JobCategory } from "@/lib/api"
+import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobPost[]>([])
@@ -31,102 +32,104 @@ export default function JobsPage() {
     size: 12,
   })
 
+  const { isSaved, toggleSaveJob: toggleSaveJobContext } = useSavedJobs()
+
   useEffect(() => {
     fetchJobs()
   }, [searchParams])
 
   interface Category {
-    id: number;
-    categoryName: string;
+    id: number
+    categoryName: string
   }
 
   const hardcodedCategories: Category[] = [
-    { id: 4, categoryName: 'Software Engineer' },
-    { id: 5, categoryName: 'Backend Developer' },
-    { id: 6, categoryName: 'Frontend Developer' },
-    { id: 7, categoryName: 'Mobile Developer' },
-    { id: 8, categoryName: 'Fullstack Developer' },
-    { id: 9, categoryName: 'Blockchain Engineer' },
-    { id: 10, categoryName: 'Software Testing' },
-    { id: 11, categoryName: 'Software Tester (Automation & Manual)' },
-    { id: 12, categoryName: 'Automation Tester' },
-    { id: 13, categoryName: 'Manual Tester' },
-    { id: 14, categoryName: 'Game Tester' },
-    { id: 15, categoryName: 'QA Engineer' },
-    { id: 16, categoryName: 'Process Quality Assurance (PQA)' },
-    { id: 17, categoryName: 'Artificial Intelligence (AI)' },
-    { id: 18, categoryName: 'AI Engineer' },
-    { id: 19, categoryName: 'AI Researcher' },
-    { id: 20, categoryName: 'Data Labeling (Gán nhãn dữ liệu)' },
-    { id: 21, categoryName: 'Data Science' },
-    { id: 22, categoryName: 'Data Analyst' },
-    { id: 23, categoryName: 'Data Engineer' },
-    { id: 24, categoryName: 'Data Scientist' },
-    { id: 25, categoryName: 'IT Infrastructure and Operations' },
-    { id: 26, categoryName: 'IT Helpdesk/IT support' },
-    { id: 27, categoryName: 'DevOps Engineer' },
-    { id: 28, categoryName: 'Network Engineer' },
-    { id: 29, categoryName: 'System Engineer' },
-    { id: 30, categoryName: 'System Administrator' },
-    { id: 31, categoryName: 'Database Administrator (DBA)' },
-    { id: 32, categoryName: 'Cloud Engineer' },
-    { id: 33, categoryName: 'Kỹ thuật IT' },
-    { id: 34, categoryName: 'Information Security' },
-    { id: 35, categoryName: 'Chuyên viên Cyber Security' },
-    { id: 36, categoryName: 'Chuyên viên IT Security' },
-    { id: 37, categoryName: 'Chiến lược và phân tích bảo mật' },
-    { id: 38, categoryName: 'Quản trị và vận hành bảo mật' },
-    { id: 39, categoryName: 'Tuân thủ và kiểm toán bảo mật' },
-    { id: 40, categoryName: 'Phòng chống lừa đảo và an ninh mạng' },
-    { id: 41, categoryName: 'Bảo mật ứng dụng và phát triển' },
-    { id: 42, categoryName: 'Mã hóa và bảo mật dữ liệu' },
-    { id: 43, categoryName: 'Kiểm thử và đánh giá bảo mật' },
-    { id: 44, categoryName: 'IoT/Embedded Engineer' },
-    { id: 45, categoryName: 'Kỹ sư IoT (IoT Engineer)' },
-    { id: 46, categoryName: 'Embedded Engineer/Lập trình nhúng' },
-    { id: 47, categoryName: 'IT Project Management' },
-    { id: 48, categoryName: 'IT Project Manager' },
-    { id: 49, categoryName: 'Scrum Master' },
-    { id: 50, categoryName: 'Kỹ sư cầu nối BrSE' },
-    { id: 51, categoryName: 'IT Comtor' },
-    { id: 52, categoryName: 'IT Management/Specialist' },
-    { id: 53, categoryName: 'Software Architect' },
-    { id: 54, categoryName: 'System Architect' },
-    { id: 55, categoryName: 'Solution Architect' },
-    { id: 56, categoryName: 'Technical Leader' },
-    { id: 57, categoryName: 'Technical Manager' },
-    { id: 58, categoryName: 'Head of Engineering' },
-    { id: 59, categoryName: 'Technical Director' },
-    { id: 60, categoryName: 'Chief Technology Officer (CTO)' },
-    { id: 61, categoryName: 'Chief Information Officer (CIO)' },
-    { id: 62, categoryName: 'Software Design' },
-    { id: 63, categoryName: 'UI/UX Design' },
-    { id: 64, categoryName: 'Thiết kế đồ họa (Graphic Design)' },
-    { id: 65, categoryName: 'Illustration' },
-    { id: 66, categoryName: 'Animation Design' },
-    { id: 67, categoryName: 'Interaction Designer' },
-    { id: 68, categoryName: '3D Modeler' },
-    { id: 69, categoryName: 'Product Management' },
-    { id: 70, categoryName: 'Product Owner/Product Manager' },
-    { id: 71, categoryName: 'Business Analyst (Phân tích nghiệp vụ)' },
-    { id: 72, categoryName: 'Product Analyst/Research' },
-    { id: 73, categoryName: 'Game Development' },
-    { id: 74, categoryName: 'Game Developer' },
-    { id: 75, categoryName: 'Concept Artist' },
-    { id: 76, categoryName: 'Game Design' },
-    { id: 77, categoryName: 'AR/VR Developer' },
-    { id: 78, categoryName: 'Vị trí Game Development khác' },
-    { id: 79, categoryName: 'Sales IT Phần mềm' },
-    { id: 80, categoryName: 'Kinh doanh phần mềm' },
-    { id: 81, categoryName: 'Kinh doanh Domain/Hosting/Server' },
-    { id: 82, categoryName: 'Sales IT Phần mềm khác' },
-    { id: 83, categoryName: 'Công nghệ thông tin khác' },
-    { id: 84, categoryName: 'IT Consultant' },
-    { id: 85, categoryName: 'GIS Engineer' },
-    { id: 86, categoryName: 'Bán hàng kỹ thuật IT' },
-    { id: 87, categoryName: 'Chuyên môn Công nghệ thông tin khác' },
-    { id: 88, categoryName: 'Business Analyst (BA)' }
-  ];
+    { id: 4, categoryName: "Software Engineer" },
+    { id: 5, categoryName: "Backend Developer" },
+    { id: 6, categoryName: "Frontend Developer" },
+    { id: 7, categoryName: "Mobile Developer" },
+    { id: 8, categoryName: "Fullstack Developer" },
+    { id: 9, categoryName: "Blockchain Engineer" },
+    { id: 10, categoryName: "Software Testing" },
+    { id: 11, categoryName: "Software Tester (Automation & Manual)" },
+    { id: 12, categoryName: "Automation Tester" },
+    { id: 13, categoryName: "Manual Tester" },
+    { id: 14, categoryName: "Game Tester" },
+    { id: 15, categoryName: "QA Engineer" },
+    { id: 16, categoryName: "Process Quality Assurance (PQA)" },
+    { id: 17, categoryName: "Artificial Intelligence (AI)" },
+    { id: 18, categoryName: "AI Engineer" },
+    { id: 19, categoryName: "AI Researcher" },
+    { id: 20, categoryName: "Data Labeling (Gán nhãn dữ liệu)" },
+    { id: 21, categoryName: "Data Science" },
+    { id: 22, categoryName: "Data Analyst" },
+    { id: 23, categoryName: "Data Engineer" },
+    { id: 24, categoryName: "Data Scientist" },
+    { id: 25, categoryName: "IT Infrastructure and Operations" },
+    { id: 26, categoryName: "IT Helpdesk/IT support" },
+    { id: 27, categoryName: "DevOps Engineer" },
+    { id: 28, categoryName: "Network Engineer" },
+    { id: 29, categoryName: "System Engineer" },
+    { id: 30, categoryName: "System Administrator" },
+    { id: 31, categoryName: "Database Administrator (DBA)" },
+    { id: 32, categoryName: "Cloud Engineer" },
+    { id: 33, categoryName: "Kỹ thuật IT" },
+    { id: 34, categoryName: "Information Security" },
+    { id: 35, categoryName: "Chuyên viên Cyber Security" },
+    { id: 36, categoryName: "Chuyên viên IT Security" },
+    { id: 37, categoryName: "Chiến lược và phân tích bảo mật" },
+    { id: 38, categoryName: "Quản trị và vận hành bảo mật" },
+    { id: 39, categoryName: "Tuân thủ và kiểm toán bảo mật" },
+    { id: 40, categoryName: "Phòng chống lừa đảo và an ninh mạng" },
+    { id: 41, categoryName: "Bảo mật ứng dụng và phát triển" },
+    { id: 42, categoryName: "Mã hóa và bảo mật dữ liệu" },
+    { id: 43, categoryName: "Kiểm thử và đánh giá bảo mật" },
+    { id: 44, categoryName: "IoT/Embedded Engineer" },
+    { id: 45, categoryName: "Kỹ sư IoT (IoT Engineer)" },
+    { id: 46, categoryName: "Embedded Engineer/Lập trình nhúng" },
+    { id: 47, categoryName: "IT Project Management" },
+    { id: 48, categoryName: "IT Project Manager" },
+    { id: 49, categoryName: "Scrum Master" },
+    { id: 50, categoryName: "Kỹ sư cầu nối BrSE" },
+    { id: 51, categoryName: "IT Comtor" },
+    { id: 52, categoryName: "IT Management/Specialist" },
+    { id: 53, categoryName: "Software Architect" },
+    { id: 54, categoryName: "System Architect" },
+    { id: 55, categoryName: "Solution Architect" },
+    { id: 56, categoryName: "Technical Leader" },
+    { id: 57, categoryName: "Technical Manager" },
+    { id: 58, categoryName: "Head of Engineering" },
+    { id: 59, categoryName: "Technical Director" },
+    { id: 60, categoryName: "Chief Technology Officer (CTO)" },
+    { id: 61, categoryName: "Chief Information Officer (CIO)" },
+    { id: 62, categoryName: "Software Design" },
+    { id: 63, categoryName: "UI/UX Design" },
+    { id: 64, categoryName: "Thiết kế đồ họa (Graphic Design)" },
+    { id: 65, categoryName: "Illustration" },
+    { id: 66, categoryName: "Animation Design" },
+    { id: 67, categoryName: "Interaction Designer" },
+    { id: 68, categoryName: "3D Modeler" },
+    { id: 69, categoryName: "Product Management" },
+    { id: 70, categoryName: "Product Owner/Product Manager" },
+    { id: 71, categoryName: "Business Analyst (Phân tích nghiệp vụ)" },
+    { id: 72, categoryName: "Product Analyst/Research" },
+    { id: 73, categoryName: "Game Development" },
+    { id: 74, categoryName: "Game Developer" },
+    { id: 75, categoryName: "Concept Artist" },
+    { id: 76, categoryName: "Game Design" },
+    { id: 77, categoryName: "AR/VR Developer" },
+    { id: 78, categoryName: "Vị trí Game Development khác" },
+    { id: 79, categoryName: "Sales IT Phần mềm" },
+    { id: 80, categoryName: "Kinh doanh phần mềm" },
+    { id: 81, categoryName: "Kinh doanh Domain/Hosting/Server" },
+    { id: 82, categoryName: "Sales IT Phần mềm khác" },
+    { id: 83, categoryName: "Công nghệ thông tin khác" },
+    { id: 84, categoryName: "IT Consultant" },
+    { id: 85, categoryName: "GIS Engineer" },
+    { id: 86, categoryName: "Bán hàng kỹ thuật IT" },
+    { id: 87, categoryName: "Chuyên môn Công nghệ thông tin khác" },
+    { id: 88, categoryName: "Business Analyst (BA)" },
+  ]
 
   // useEffect(() => {
   //   fetchCategories()
@@ -147,14 +150,13 @@ export default function JobsPage() {
   //   }
   // }
   const formatSalaryShort = (salary: number) => {
-
     if (salary >= 1000000) {
-      const millions = salary / 1000000;
-      return `${Number(millions.toFixed(1))} Triệu`;
+      const millions = salary / 1000000
+      return `${Number(millions.toFixed(1))} Triệu`
     }
 
-    return salary.toLocaleString();
-  };
+    return salary.toLocaleString()
+  }
 
   const fetchJobs = async () => {
     setIsLoading(true)
@@ -236,12 +238,21 @@ export default function JobsPage() {
     }))
   }
 
-  const toggleSaveJob = async (jobId: string) => {
+  const toggleSaveJob = async (jobId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      alert("Vui lòng đăng nhập để lưu việc làm")
+      return
+    }
+
     try {
-      await api.toggleSaveJob(jobId)
-      // Update UI to show saved state
+      await toggleSaveJobContext(jobId)
     } catch (error) {
       console.error("Error saving job:", error)
+      alert("Không thể lưu việc làm. Vui lòng thử lại.")
     }
   }
 
@@ -296,12 +307,42 @@ export default function JobsPage() {
                     <SelectValue placeholder="Loại việc làm" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all"  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">Tất cả</SelectItem>
-                    <SelectItem value="INTERNSHIP"  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">Internship</SelectItem>
-                    <SelectItem value="FRESHER"  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">Fresher</SelectItem>
-                    <SelectItem value="JUNIOR"  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">Junior</SelectItem>
-                    <SelectItem value="SENIOR"  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">Senior</SelectItem>
-                    <SelectItem value="MANAGER"  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">Manager</SelectItem>
+                    <SelectItem
+                      value="all"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Tất cả
+                    </SelectItem>
+                    <SelectItem
+                      value="INTERNSHIP"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Internship
+                    </SelectItem>
+                    <SelectItem
+                      value="FRESHER"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Fresher
+                    </SelectItem>
+                    <SelectItem
+                      value="JUNIOR"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Junior
+                    </SelectItem>
+                    <SelectItem
+                      value="SENIOR"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Senior
+                    </SelectItem>
+                    <SelectItem
+                      value="MANAGER"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Manager
+                    </SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -310,14 +351,17 @@ export default function JobsPage() {
                   onValueChange={(value) => handleFilterChange("categoryId", value)}
                 >
                   <SelectTrigger className="w-[180px]">
-
                     <SelectValue placeholder="Danh mục" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả danh mục</SelectItem>
 
                     {hardcodedCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}  className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]">
+                      <SelectItem
+                        key={category.id}
+                        value={category.id.toString()}
+                        className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                      >
                         {category.categoryName}
                       </SelectItem>
                     ))}
@@ -385,18 +429,17 @@ export default function JobsPage() {
                         </div>
                       </div>
 
-                      {/* Save Button */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          toggleSaveJob(job.id)
-                        }}
-                        className="text-muted-foreground hover:text-red-500 flex-shrink-0 h-8 w-8 p-0"
+                        onClick={(e) => toggleSaveJob(job.id, e)}
+                        className={`flex-shrink-0 h-8 w-8 p-0 ${
+                          isSaved(job.id)
+                            ? "text-yellow-500 hover:text-yellow-600"
+                            : "text-muted-foreground hover:text-yellow-500"
+                        }`}
                       >
-                        <Flag className="h-4 w-4" />
+                        <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                       </Button>
                     </div>
                   </CardHeader>
@@ -435,13 +478,6 @@ export default function JobsPage() {
                       </span>
                     </div>
                   </CardContent>
-
-                  {/* <div className="flex items-center justify-between px-6 pb-4 mt-auto">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                      <span className="text-sm ml-1 font-medium">4.8</span>
-                    </div>
-                  </div> */}
                 </Card>
               </Link>
             ))}
