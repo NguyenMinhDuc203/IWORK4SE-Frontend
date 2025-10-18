@@ -23,7 +23,7 @@ import {
   Flag
 } from "lucide-react"
 import { api, JobPost } from "@/lib/api"
-import ApiTestComponent from "@/components/api-test"
+// import ApiTestComponent from "@/components/api-test" // Removed
 import ClientOnly from "@/components/client-only"
 
 
@@ -427,20 +427,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* API Test Section - Remove this in production */}
-      {/* <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold mb-2">API Connection Test</h2>
-            <p className="text-muted-foreground">
-              Test connection to backend API (Development only)
-            </p>
-          </div>
-          <ClientOnly fallback={<div className="text-center py-8">Đang tải API test...</div>}>
-            <ApiTestComponent />
-          </ClientOnly>
-        </div>
-      </section> */}
 
       {/* CTA Section */}
       <section className="py-16 bg-primary text-primary-foreground">

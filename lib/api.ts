@@ -571,10 +571,37 @@ export const api = {
     return fetchApi<ApiResponse<any>>(`/employer/list?${queryParams.toString()}`)
   },
 
+  // Alternative endpoint for getting all employers
+  getAllEmployersAlt: (params?: {
+    keyword?: string
+    sort?: string
+    page?: number
+    size?: number
+  }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.keyword) queryParams.append("keyword", params.keyword)
+    if (params?.sort) queryParams.append("sort", params.sort)
+    if (params?.page !== undefined) queryParams.append("page", params.page.toString())
+    if (params?.size !== undefined) queryParams.append("size", params.size.toString())
+
+    return fetchApi<ApiResponse<any>>(`/employer?${queryParams.toString()}`)
+  },
+
   deleteEmployer: (id: string) =>
     fetchApi<ApiResponse<any>>(`/employer/del/${id}`, {
       method: "DELETE",
     }),
+
+  // Update employer status
+  updateEmployerStatus: (id: string, status: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED") =>
+    fetchApi<ApiResponse<any>>(`/employer/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
+  // Get employer statistics
+  getEmployerStatistics: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/employer/${id}/statistics`),
 
   // Applicant Management
   updateApplicant: (data: {
@@ -609,10 +636,37 @@ export const api = {
     return fetchApi<ApiResponse<any>>(`/applicant/list?${queryParams.toString()}`)
   },
 
+  // Alternative endpoint for getting all applicants
+  getAllApplicantsAlt: (params?: {
+    keyword?: string
+    sort?: string
+    page?: number
+    size?: number
+  }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.keyword) queryParams.append("keyword", params.keyword)
+    if (params?.sort) queryParams.append("sort", params.sort)
+    if (params?.page !== undefined) queryParams.append("page", params.page.toString())
+    if (params?.size !== undefined) queryParams.append("size", params.size.toString())
+
+    return fetchApi<ApiResponse<any>>(`/applicant?${queryParams.toString()}`)
+  },
+
   deleteApplicant: (id: string) =>
     fetchApi<ApiResponse<any>>(`/applicant/del/${id}`, {
       method: "DELETE",
     }),
+
+  // Update applicant status
+  updateApplicantStatus: (id: string, status: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED") =>
+    fetchApi<ApiResponse<any>>(`/applicant/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
+  // Get applicant statistics
+  getApplicantStatistics: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/applicant/${id}/statistics`),
 
   // Job Categories
   getJobCategories: (params?: {
