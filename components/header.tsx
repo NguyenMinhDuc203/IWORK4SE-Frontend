@@ -420,6 +420,14 @@ export function Header() {
                                 <Briefcase className="h-5 w-5 text-primary" />
                                 <span className="text-sm">Quản lý việc làm</span>
                               </Link>
+                              <Link
+                                href="/employer/profile/edit"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Edit className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Cập nhật hồ sơ công ty</span>
+                              </Link>
                             </>
                           )}
 

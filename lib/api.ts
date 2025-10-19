@@ -755,14 +755,19 @@ export const api = {
 
   // Employer Management
   updateEmployer: (data: {
-    userId: string
-    companyName?: string
-    companyDescription?: string
-    website?: string
-    phoneNumber?: string
+    id: string
+    firstName: string
+    lastName: string
+    email: string
     address?: string
+    birthday?: string
+    phone?: string
+    gender?: "MALE" | "FEMALE" | "OTHER"
+    companyName: string
+    location?: string
     industry?: string
-    companySize?: string
+    description?: string
+    logoUrl?: string
   }) =>
     fetchApi<ApiResponse<any>>("/employer/update", {
       method: "PUT",

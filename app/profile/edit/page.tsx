@@ -41,6 +41,18 @@ export default function ProfileEditPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  // Check user type and redirect accordingly
+  useEffect(() => {
+    const userType = localStorage.getItem("userType")
+    if (userType === "EMPLOYER") {
+      router.push("/employer/profile/edit")
+    } else if (!userType || userType === "APPLICANT") {
+      // Continue with applicant profile edit
+    } else {
+      router.push("/login")
+    }
+  }, [router])
+
   // Basic Info
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
