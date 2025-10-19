@@ -16,6 +16,69 @@ export class ApiError extends Error {
   }
 }
 
+let isRefreshing = false
+let refreshSubscribers: Array<(token: string) => void> = []
+
+function subscribeTokenRefresh(callback: (token: string) => void) {
+  refreshSubscribers.push(callback)
+}
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach((callback) => callback(token))
+  refreshSubscribers = []
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  try {
+    const refreshToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null
+
+    if (!refreshToken) {
+      // No refresh token, redirect to login
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"
+      }
+      return null
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(refreshToken),
+    })
+
+    if (!response.ok) {
+      // Refresh failed, redirect to login
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token")
+        localStorage.removeItem("refreshToken")
+        window.location.href = "/login"
+      }
+      return null
+    }
+
+    const data = await response.json()
+    const newToken = data.data.token
+    const newRefreshToken = data.data.refreshToken
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", newToken)
+      localStorage.setItem("refreshToken", newRefreshToken)
+    }
+
+    return newToken
+  } catch (error) {
+    console.error("[v0] Token refresh failed:", error)
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token")
+      localStorage.removeItem("refreshToken")
+      window.location.href = "/login"
+    }
+    return null
+  }
+}
+
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
 
@@ -29,14 +92,23 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   }
 
   if (!(options.body instanceof FormData)) {
-    headers["Content-Type"] = "application/json";
+    headers["Content-Type"] = "application/json"
   } else {
-    delete headers['Content-Type'];
+    delete headers["Content-Type"]
   }
 
   // Add timeout and better error handling
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+  // Increase timeout for specific endpoints that might take longer
+  let timeoutDuration = 10000 // Default 10 seconds
+  if (endpoint.includes('/job-category/')) {
+    timeoutDuration = 30000 // 30 seconds for job categories
+  } else if (endpoint.includes('/job-post/') && options.method === 'POST') {
+    timeoutDuration = 45000 // 45 seconds for creating job posts
+  } else if (endpoint.includes('/job-post/') && options.method === 'PUT') {
+    timeoutDuration = 30000 // 30 seconds for updating job posts
+  }
+  const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -46,6 +118,75 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     })
 
     clearTimeout(timeoutId)
+
+    if (response.status === 403) {
+      const error = await response.json().catch(() => ({ message: "An error occurred" }))
+
+      // Check if it's a JWT expired error
+      if (error.message && error.message.includes("JWT expired")) {
+        console.log("[v0] JWT expired, attempting to refresh token...")
+
+        // If already refreshing, wait for the new token
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            subscribeTokenRefresh(async (newToken: string) => {
+              // Retry the original request with new token
+              const retryHeaders = {
+                ...headers,
+                Authorization: `Bearer ${newToken}`,
+              }
+
+              try {
+                const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+                  ...options,
+                  headers: retryHeaders,
+                  signal: controller.signal,
+                })
+
+                if (!retryResponse.ok) {
+                  const retryError = await retryResponse.json().catch(() => ({ message: "An error occurred" }))
+                  reject(new ApiError(retryResponse.status, retryError.message || "An error occurred"))
+                } else {
+                  resolve(retryResponse.json())
+                }
+              } catch (err) {
+                reject(err)
+              }
+            })
+          })
+        }
+
+        // Start token refresh
+        isRefreshing = true
+        const newToken = await refreshAccessToken()
+        isRefreshing = false
+
+        if (newToken) {
+          onTokenRefreshed(newToken)
+
+          // Retry the original request with new token
+          const retryHeaders = {
+            ...headers,
+            Authorization: `Bearer ${newToken}`,
+          }
+
+          const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+            ...options,
+            headers: retryHeaders,
+            signal: controller.signal,
+          })
+
+          if (!retryResponse.ok) {
+            const retryError = await retryResponse.json().catch(() => ({ message: "An error occurred" }))
+            throw new ApiError(retryResponse.status, retryError.message || "An error occurred")
+          }
+
+          return retryResponse.json()
+        }
+      }
+
+      throw new ApiError(response.status, error.message || "An error occurred")
+    }
 
     if (!response.ok) {
       // Try parse JSON first
@@ -78,7 +219,15 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     // Handle network errors
     if (error instanceof Error) {
       if (error.name === "AbortError") {
-        throw new ApiError(408, "Request timeout - Server không phản hồi")
+        let timeoutMsg = "Request timeout - Server không phản hồi"
+        if (endpoint.includes('/job-category/')) {
+          timeoutMsg = "Request timeout (30s) - Server không phản hồi. Vui lòng thử lại sau."
+        } else if (endpoint.includes('/job-post/') && options.method === 'POST') {
+          timeoutMsg = "Request timeout (45s) - Tạo tin tuyển dụng mất quá nhiều thời gian. Vui lòng kiểm tra lại."
+        } else if (endpoint.includes('/job-post/') && options.method === 'PUT') {
+          timeoutMsg = "Request timeout (30s) - Cập nhật tin tuyển dụng mất quá nhiều thời gian. Vui lòng thử lại."
+        }
+        throw new ApiError(408, timeoutMsg)
       }
       if (error.message.includes("Failed to fetch")) {
         throw new ApiError(0, "Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy không.")
@@ -181,37 +330,105 @@ export interface Employer {
   logoUrl?: string
 }
 
+export interface Certificate {
+  certificateId: string
+  certificateName: string
+  issuingOrganization: string
+  issueDate: string
+  expirationDate?: string
+  certificateUrl?: string
+  notes?: string
+}
+
 export interface Applicant {
+  id?: string
+  userId?: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  address: string
+  birthday: string
+  gender: "MALE" | "FEMALE"
+  careerObjective?: string
+  yearsOfExperience: number
+  skills: string[]
+  certificates: Certificate[]
+  universityName: string
+  major: string
+  degreeLevel: string
+  graduationYear: number
+  gpa: number
+}
+
+export interface ApplicantDocument {
   id: string
-  userId: string
-  phoneNumber?: string
-  address?: string
-  dateOfBirth?: string
-  gender?: "MALE" | "FEMALE" | "OTHER"
-  experience?: string
-  skills?: string
-  education?: string
+  firstName: string
+  lastName: string
+  email: string
+  userName: string
+  address: string
+  birthday: string
+  phone: string
+  gender: "MALE" | "FEMALE"
+  userStatus: "ACTIVE" | "INACTIVE" | "PENDING"
+  createAt: string
+  updateAt: string
+  yearsOfExperience: number
+  careerObjective: string
+  universityName: string
+  degreeLevel: string
+  graduationYear: number
+  gpa: number
+  major: string
+  skills: string[]
+  certificateNames: string[]
+  issuingOrganizations: string[]
+  savedInListIds: string[]
+  searchableText: string
+}
+
+export interface ApplicantSearchRequest {
+  keywords?: string
+  minExperience?: number
+  minGpa?: number
+  skill?: string
+  major?: string
+  university?: string
+  gender?: "MALE" | "FEMALE"
+  userStatus?: "ACTIVE" | "INACTIVE" | "PENDING"
+  savedApplicantListId?: string
+  page?: number
+  size?: number
+}
+
+export interface ApplicantSearchResponse {
+  content: ApplicantDocument[]
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+  totalElements: number
 }
 
 export interface Application {
-  id: string;
-  applicantId: string;
-  applicantName: string;
-  jobId: string;
-  jobTitle: string;
-  jobPosition: string;
-  logoUrl: string;
-  companyName: string;
-  location: string;
-  minSalary: number;
-  maxSalary: number;
-  closingDate: string;  
-  appliedDate: string;  
-  status: "PENDING" |"VIEWED"|"APPROVED"|"REJECTED"|"WITHDRAWN"
-  cvFileName: string;
-  cvId: string;
-  cvUrl: string;
-  updateAt: string;    
+  id: string
+  applicantId: string
+  applicantName: string
+  jobId: string
+  jobTitle: string
+  jobPosition: string
+  logoUrl: string
+  companyName: string
+  location: string
+  minSalary: number
+  maxSalary: number
+  closingDate: string
+  appliedDate: string
+  status: "PENDING" | "VIEWED" | "APPROVED" | "REJECTED" | "WITHDRAWN"
+  cvFileName: string
+  cvId: string
+  cvUrl: string
+  updateAt: string
 }
 
 export const api = {
@@ -470,7 +687,7 @@ export const api = {
   uploadCV: (formData: FormData) =>
     fetchApi<ApiResponse<any>>("/cv/", {
       method: "POST",
-      body: formData
+      body: formData,
     }),
 
   getCVsByApplicant: (applicantId: string, page = 0, size = 10) =>
@@ -498,37 +715,35 @@ export const api = {
     }),
 
   toggleSaveJob: async (jobPostId: string) => {
-    const applicantId = localStorage.getItem("userId");
-    if (!applicantId) throw new Error("Missing applicantId in localStorage");
+    const applicantId = localStorage.getItem("userId")
+    if (!applicantId) throw new Error("Missing applicantId in localStorage")
 
-    const url = `/saved-job/toggle?applicantId=${applicantId}&jobId=${jobPostId}`;
+    const url = `/saved-job/toggle?applicantId=${applicantId}&jobId=${jobPostId}`
 
     return fetchApi<ApiResponse<any>>(url, {
       method: "POST",
-    });
+    })
   },
   getSavedJobsByApplicant: ({
     applicantId,
-    page = 0, 
-    size = 10, 
+    page = 0,
+    size = 10,
   }: {
-    applicantId: string;
-    page?: number;
-    size?: number;
+    applicantId: string
+    page?: number
+    size?: number
   }) => {
     const queryParams = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),
-    });
+    })
 
-    const url = `/saved-job/applicant/${applicantId}?${queryParams.toString()}`;
+    const url = `/saved-job/applicant/${applicantId}?${queryParams.toString()}`
 
     return fetchApi<ApiResponse<any>>(url, {
       method: "GET",
-    });
+    })
   },
-
-
 
   // getSavedJobsByApplicant: (applicantId: string, page = 0, size = 10) =>
   //   fetchApi<ApiResponse<any>>(`/saved-job/applicant/${applicantId}?page=${page}&size=${size}`),
@@ -604,16 +819,7 @@ export const api = {
     fetchApi<ApiResponse<any>>(`/employer/${id}/statistics`),
 
   // Applicant Management
-  updateApplicant: (data: {
-    userId: string
-    phoneNumber?: string
-    address?: string
-    dateOfBirth?: string
-    gender?: "MALE" | "FEMALE" | "OTHER"
-    experience?: string
-    skills?: string
-    education?: string
-  }) =>
+  updateApplicant: (data: Applicant) =>
     fetchApi<ApiResponse<any>>("/applicant/update", {
       method: "PUT",
       body: JSON.stringify(data),
@@ -744,5 +950,38 @@ export const api = {
       },
       body: JSON.stringify(filteredParams),
     })
+  },
+
+  // Applicant Search APIs
+  searchApplicants: (params: ApplicantSearchRequest) => {
+    // Lọc bỏ các field null/undefined/chuỗi rỗng để tránh gửi dữ liệu thừa
+    const filteredParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== ""),
+    )
+
+    // Backend trả về trực tiếp Spring Boot Page object, không có ApiResponse wrapper
+    return fetch(`${API_BASE_URL}/search/applicants`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(filteredParams),
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return response.json()
+    })
+  },
+
+  searchApplicantsByKeywords: (keywords: string, page = 0, size = 20) => {
+    const queryParams = new URLSearchParams({
+      keywords,
+      page: page.toString(),
+      size: size.toString(),
+    })
+
+    return fetchApi<ApiResponse<ApplicantSearchResponse>>(`/search/applicants/keywords?${queryParams.toString()}`)
   },
 }

@@ -8,37 +8,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   MapPin,
-  Clock,
   DollarSign,
   Building2,
-  Star,
-  Heart,
   Share2,
   Users,
   Calendar,
   CheckCircle,
   Loader2,
   ArrowLeft,
-  Briefcase 
+  Briefcase,
+  Flag,
 } from "lucide-react"
 import { api, type JobPost } from "@/lib/api"
 import { ApplyJobDialog } from "@/components/apply-job-dialog"
 import { LoginDialog } from "@/components/login-dialog"
-import { log } from "console"
+import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function JobDetailPage() {
   const params = useParams()
   const jobId = params.id as string
 
-
   const [job, setJob] = useState<JobPost | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isSaved, setIsSaved] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
   const [showApplyDialog, setShowApplyDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+
+  const { isSaved, toggleSaveJob: toggleSaveJobContext } = useSavedJobs()
 
   useEffect(() => {
     if (jobId) {
@@ -59,33 +57,31 @@ export default function JobDetailPage() {
   }
   const formatJobDescription = (description: string) => {
     if (!description) {
-      return "";
+      return ""
     }
-    const withBold = description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    const withBold = description.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
 
-    const withLineBreaks = withBold.replace(/\n/g, '<br />');
+    const withLineBreaks = withBold.replace(/\n/g, "<br />")
 
-    return withLineBreaks;
-  };
+    return withLineBreaks
+  }
   const formatSalaryShort = (salary: number) => {
-
     if (salary >= 1000000) {
-      const millions = salary / 1000000;
-      return `${Number(millions.toFixed(1))} Triệu`;
+      const millions = salary / 1000000
+      return `${Number(millions.toFixed(1))} Triệu`
     }
 
-    return salary.toLocaleString();
-  };
+    return salary.toLocaleString()
+  }
 
   const formatMinSalaryShort = (salary: number) => {
-
     if (salary >= 1000000) {
-      const millions = salary / 1000000;
-      return `${Number(millions.toFixed(1))}`;
+      const millions = salary / 1000000
+      return `${Number(millions.toFixed(1))}`
     }
 
-    return salary.toLocaleString();
-  };
+    return salary.toLocaleString()
+  }
 
   const handleApply = () => {
     const token = localStorage.getItem("token")
@@ -101,11 +97,20 @@ export default function JobDetailPage() {
   }
 
   const handleSaveJob = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setShowLoginDialog(true)
+      return
+    }
+
     try {
-      await api.saveJob({ jobPostId: jobId })
-      setIsSaved(true)
+      await toggleSaveJobContext(jobId)
+      setSuccess(isSaved(jobId) ? "Đã bỏ lưu việc làm" : "Đã lưu việc làm thành công!")
+      setTimeout(() => setSuccess(""), 3000)
     } catch (error) {
       console.error("Error saving job:", error)
+      setError("Không thể lưu việc làm. Vui lòng thử lại.")
+      setTimeout(() => setError(""), 3000)
     }
   }
 
@@ -319,8 +324,8 @@ export default function JobDetailPage() {
 
                   <div className="flex space-x-2">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
-                      <Heart className={`h-4 w-4 mr-2 ${isSaved ? "fill-red-500 text-red-500" : ""}`} />
-                      {isSaved ? "Đã lưu" : "Lưu việc làm"}
+                      <Flag className={`h-4 w-4 mr-2 ${isSaved(jobId) ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                      {isSaved(jobId) ? "Đã lưu" : "Lưu việc làm"}
                     </Button>
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />

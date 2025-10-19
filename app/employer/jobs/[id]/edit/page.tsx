@@ -79,16 +79,48 @@ export default function EditJobPage() {
   const fetchCategories = async () => {
     setIsLoadingCategories(true)
     try {
-      // Try no-pagination first
-      const resAll = await api.getAllJobCategories()
-      setCategories(resAll.data)
-    } catch (e) {
+      // Try no-pagination first with retry
+      let resAll
       try {
-        // Fallback chain if one endpoint is forbidden
+        resAll = await api.getAllJobCategories()
+      } catch (e) {
+        // Retry once after 2 seconds
+        console.log("Retrying getAllJobCategories...")
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        resAll = await api.getAllJobCategories()
+      }
+      
+      if (resAll.data && resAll.data.length > 0) {
+        setCategories(resAll.data)
+      } else {
+        throw new Error("No categories returned")
+      }
+      
+    } catch (e) {
+      console.log("getAllJobCategories failed, trying paginated endpoint...")
+      try {
+        // Fallback to paginated endpoint
         const resPaged = await api.getJobCategories({ page: 0, size: 100 })
-        setCategories(resPaged.data?.content || [])
-      } catch {
-        setCategories([])
+        if (resPaged.data?.content && resPaged.data.content.length > 0) {
+          setCategories(resPaged.data.content)
+        } else {
+          throw new Error("No categories from paginated endpoint")
+        }
+      } catch (fallbackError) {
+        console.log("All API endpoints failed, using fallback categories")
+        // Fallback to hardcoded categories
+        setCategories([
+          { id: 1, categoryName: "Software Engineer", description: "", createAt: "", updateAt: "" },
+          { id: 2, categoryName: "Backend Developer", description: "", createAt: "", updateAt: "" },
+          { id: 3, categoryName: "Frontend Developer", description: "", createAt: "", updateAt: "" },
+          { id: 4, categoryName: "Fullstack Developer", description: "", createAt: "", updateAt: "" },
+          { id: 5, categoryName: "Mobile Developer", description: "", createAt: "", updateAt: "" },
+          { id: 6, categoryName: "DevOps Engineer", description: "", createAt: "", updateAt: "" },
+          { id: 7, categoryName: "Data Scientist", description: "", createAt: "", updateAt: "" },
+          { id: 8, categoryName: "AI Engineer", description: "", createAt: "", updateAt: "" },
+          { id: 9, categoryName: "QA Engineer", description: "", createAt: "", updateAt: "" },
+          { id: 10, categoryName: "Project Manager", description: "", createAt: "", updateAt: "" }
+        ])
       }
     } finally {
       setIsLoadingCategories(false)
@@ -110,24 +142,47 @@ export default function EditJobPage() {
     try {
       console.log("Updating job with ID:", jobId)
       const employerId = localStorage.getItem("userId") || ""
-      await api.updateJobPost({
-        id: jobId,
-        employerId: employerId,
-        title: form.title,
-        description: form.description,
-        jobPosition: form.jobPosition,
-        location: form.location,
-        experience: form.experience,
-        minSalary: form.minSalary,
-        maxSalary: form.maxSalary,
-        vacancies: form.vacancies,
-        jobType: form.jobType,
-        categoryId: form.categoryId,
-      })
-      router.push("/employer/jobs")
+      
+      // Try to update job post with retry mechanism
+      let jobUpdated = false
+      let retryCount = 0
+      const maxRetries = 2
+      
+      while (!jobUpdated && retryCount < maxRetries) {
+        try {
+          await api.updateJobPost({
+            id: jobId,
+            employerId: employerId,
+            title: form.title,
+            description: form.description,
+            jobPosition: form.jobPosition,
+            location: form.location,
+            experience: form.experience,
+            minSalary: form.minSalary,
+            maxSalary: form.maxSalary,
+            vacancies: form.vacancies,
+            jobType: form.jobType,
+            categoryId: form.categoryId,
+          })
+          jobUpdated = true
+        } catch (error: any) {
+          retryCount++
+          if (retryCount < maxRetries) {
+            console.log(`Retry ${retryCount} for updateJobPost...`)
+            // Wait 3 seconds before retry
+            await new Promise(resolve => setTimeout(resolve, 3000))
+          } else {
+            throw error
+          }
+        }
+      }
+      
+      if (jobUpdated) {
+        router.push("/employer/jobs")
+      }
     } catch (e: any) {
       console.error("Update job error:", e)
-      setError(e?.message || "Cập nhật tin tuyển dụng thất bại")
+      setError(e?.message || "Cập nhật tin tuyển dụng thất bại. Vui lòng thử lại sau.")
     } finally {
       setIsLoading(false)
     }

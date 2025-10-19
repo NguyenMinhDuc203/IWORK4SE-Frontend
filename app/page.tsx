@@ -1,18 +1,19 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import RotatingText from '@/components/RotatingText'
-import CountUp from '@/components/CountUp'
+import RotatingText from "@/components/RotatingText"
+import CountUp from "@/components/CountUp"
 import {
   Search,
   Briefcase,
   Building2,
   Users,
-  TrendingUp,
   Star,
   MapPin,
   Clock,
@@ -20,13 +21,12 @@ import {
   ArrowRight,
   CheckCircle,
   Loader2,
-  Flag
+  Flag,
 } from "lucide-react"
-import { api, JobPost } from "@/lib/api"
+import { api, JobPost ,type JobPost} from "@/lib/api"
 // import ApiTestComponent from "@/components/api-test" // Removed
 import ClientOnly from "@/components/client-only"
-
-
+import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function HomePage() {
   const [featuredJobs, setFeaturedJobs] = useState<JobPost[]>([])
@@ -34,11 +34,9 @@ export default function HomePage() {
   const [searchKeyword, setSearchKeyword] = useState("")
   const [searchLocation, setSearchLocation] = useState("")
 
-  const rotatingTexts = [
-    "chất lượng",
-    "nhanh chóng",
-    "phù hợp",
-  ];
+  const savedJobsContext = useSavedJobs()
+
+  const { isSaved, toggleSaveJob: toggleSaveJobContext } = savedJobsContext
 
   useEffect(() => {
     fetchFeaturedJobs()
@@ -50,11 +48,10 @@ export default function HomePage() {
       const response = await api.getActiveJobs({
         page: 0,
         size: 6,
-        sort: "postedDate,desc"
+        sort: "postedDate,desc",
       })
       console.log("Featured Jobs Response:", response)
 
-      // Handle response structure from backend
       if (response.data && response.data.content && Array.isArray(response.data.content)) {
         setFeaturedJobs(response.data.content)
       } else {
@@ -69,12 +66,23 @@ export default function HomePage() {
     }
   }
 
-  const toggleSaveJob = async (jobId: string) => {
+  const toggleSaveJob = async (jobId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      alert("Vui lòng đăng nhập để lưu việc làm")
+      return
+    }
+
     try {
-      await api.toggleSaveJob(jobId)
-      // Update UI to show saved state
+      console.log("[v0] Toggling save for job:", jobId, "Current saved state:", isSaved(jobId))
+      await toggleSaveJobContext(jobId)
+      console.log("[v0] Toggle complete. New saved state:", !isSaved(jobId))
     } catch (error) {
       console.error("Error saving job:", error)
+      alert("Không thể lưu việc làm. Vui lòng thử lại.")
     }
   }
 
@@ -98,7 +106,7 @@ export default function HomePage() {
                 <span>Tìm việc làm IT</span>
                 <div className="w-[380px] text-left overflow-hidden relative">
                   <RotatingText
-                    texts={rotatingTexts}
+                    texts={["chất lượng", "nhanh chóng", "phù hợp"]}
                     mainClassName="text-primary"
                     staggerFrom={"last"}
                     initial={{ y: "120%" }}
@@ -111,13 +119,10 @@ export default function HomePage() {
                   />
                 </div>
               </h1>
-
-              {/* (Tùy chọn) Thêm một vài nội dung khác bên dưới nếu bạn muốn */}
-
             </div>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Kết nối với hàng nghìn cơ hội việc làm IT từ các công ty hàng đầu Việt Nam.
-              Tìm kiếm công việc phù hợp với kỹ năng và kinh nghiệm của bạn.
+              Kết nối với hàng nghìn cơ hội việc làm IT từ các công ty hàng đầu Việt Nam. Tìm kiếm công việc phù hợp với
+              kỹ năng và kinh nghiệm của bạn.
             </p>
 
             {/* Search Bar */}
@@ -267,14 +272,14 @@ export default function HomePage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              toggleSaveJob(job.id)
-                            }}
-                            className="text-muted-foreground hover:text-red-500 flex-shrink-0 h-8 w-8 p-0"
+                            onClick={(e) => toggleSaveJob(job.id, e)}
+                            className={`flex-shrink-0 h-8 w-8 p-0 ${
+                              isSaved(job.id)
+                                ? "text-yellow-500 hover:text-yellow-600"
+                                : "text-muted-foreground hover:text-yellow-500"
+                            }`}
                           >
-                            <Flag className="h-4 w-4" />
+                            <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                           </Button>
                         </div>
                       </CardHeader>
@@ -329,13 +334,9 @@ export default function HomePage() {
                     <Briefcase className="h-12 w-12 text-muted-foreground" />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Chưa có việc làm nào</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Hiện tại chưa có việc làm nào được đăng tuyển
-                  </p>
+                  <p className="text-muted-foreground mb-4">Hiện tại chưa có việc làm nào được đăng tuyển</p>
                   <Link href="/jobs">
-                    <Button variant="outline">
-                      Xem tất cả việc làm
-                    </Button>
+                    <Button variant="outline">Xem tất cả việc làm</Button>
                   </Link>
                 </div>
               )}
@@ -426,7 +427,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
 
       {/* CTA Section */}
       <section className="py-16 bg-primary text-primary-foreground">

@@ -187,6 +187,11 @@ export function Header() {
                         Quản lý việc làm
                       </Button>
                     </Link>
+                    <Link href="/employer/applicants">
+                      <Button variant="ghost" size="sm">
+                        Quản lý Ứng viên
+                      </Button>
+                    </Link>
                   </>
                 )}
 
@@ -348,14 +353,14 @@ export function Header() {
                             </>
                           ) : userType === "APPLICANT" ? (
                             <>
-                              <Link
+                              {/* <Link
                                 href="/profile"
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
                                 <User className="h-5 w-5 text-primary" />
                                 <span className="text-sm">Quản lý hồ sơ</span>
-                              </Link>
+                              </Link> */}
                               <Link
                                 href="/profile/edit"
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"

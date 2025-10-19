@@ -310,10 +310,10 @@ export default function EmployerDashboardPage() {
                     Quản lý việc làm
                   </Button>
                 </Link>
-                <Link href="/employer/applications" className="block">
+                <Link href="/employer/applicants" className="block">
                   <Button variant="outline" className="w-full justify-start">
                     <Users className="h-4 w-4 mr-2" />
-                    Quản lý ứng viên
+                    Quản lý Ứng viên
                   </Button>
                 </Link>
               </CardContent>
