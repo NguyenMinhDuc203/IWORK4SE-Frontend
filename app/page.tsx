@@ -300,7 +300,7 @@ export default function HomePage() {
                           </span>
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <Briefcase className="h-4 w-4 mr-2 flex-shrink-0" />
                           <span>
                             {job.jobType === "INTERNSHIP"
                               ? "Internship"

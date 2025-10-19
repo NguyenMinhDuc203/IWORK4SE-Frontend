@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Briefcase, Eye, EyeOff, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 
+
 export default function LoginPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -65,6 +66,7 @@ export default function LoginPage() {
   }
 
   return (
+    
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 py-12 px-4">
       <div className="w-full max-w-md">
       
