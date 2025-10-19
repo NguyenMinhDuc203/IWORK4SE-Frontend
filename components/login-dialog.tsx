@@ -53,11 +53,14 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
         // Save to localStorage
         localStorage.setItem("token", response.data.accessToken)
         localStorage.setItem("refreshToken", response.data.refreshToken)
-        localStorage.setItem("role", response.data.role)
+        localStorage.setItem("userType", response.data.role)
         localStorage.setItem("userId", response.data.userId)
         localStorage.setItem("fullName", response.data.fullName)
         localStorage.setItem("email", response.data.email)
         localStorage.setItem("phone", response.data.phone || "")
+
+        // Notify other components (e.g., Header) to re-render auth state
+        window.dispatchEvent(new Event("auth:changed"))
 
         // Close dialog and trigger success callback
         onOpenChange(false)

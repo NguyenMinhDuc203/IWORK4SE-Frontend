@@ -99,7 +99,16 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
   // Add timeout and better error handling
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+  // Increase timeout for specific endpoints that might take longer
+  let timeoutDuration = 10000 // Default 10 seconds
+  if (endpoint.includes('/job-category/')) {
+    timeoutDuration = 30000 // 30 seconds for job categories
+  } else if (endpoint.includes('/job-post/') && options.method === 'POST') {
+    timeoutDuration = 45000 // 45 seconds for creating job posts
+  } else if (endpoint.includes('/job-post/') && options.method === 'PUT') {
+    timeoutDuration = 30000 // 30 seconds for updating job posts
+  }
+  const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -180,10 +189,25 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "An error occurred" }))
-      throw new ApiError(response.status, error.message || "An error occurred")
+      // Try parse JSON first
+      let message = response.statusText || "An error occurred"
+      try {
+        const errJson = await response.json()
+        // Common shapes: { message }, { error: { message } }, wrapped { status, message, data }
+        message = errJson?.message || errJson?.error?.message || errJson?.data?.message || message
+      } catch {
+        // Fallback to raw text body if not JSON
+        try {
+          const text = await response.text()
+          if (text) message = text
+        } catch {
+          // ignore
+        }
+      }
+      throw new ApiError(response.status, message)
     }
 
+    // Happy path
     return response.json()
   } catch (error) {
     clearTimeout(timeoutId)
@@ -195,7 +219,15 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     // Handle network errors
     if (error instanceof Error) {
       if (error.name === "AbortError") {
-        throw new ApiError(408, "Request timeout - Server không phản hồi")
+        let timeoutMsg = "Request timeout - Server không phản hồi"
+        if (endpoint.includes('/job-category/')) {
+          timeoutMsg = "Request timeout (30s) - Server không phản hồi. Vui lòng thử lại sau."
+        } else if (endpoint.includes('/job-post/') && options.method === 'POST') {
+          timeoutMsg = "Request timeout (45s) - Tạo tin tuyển dụng mất quá nhiều thời gian. Vui lòng kiểm tra lại."
+        } else if (endpoint.includes('/job-post/') && options.method === 'PUT') {
+          timeoutMsg = "Request timeout (30s) - Cập nhật tin tuyển dụng mất quá nhiều thời gian. Vui lòng thử lại."
+        }
+        throw new ApiError(408, timeoutMsg)
       }
       if (error.message.includes("Failed to fetch")) {
         throw new ApiError(0, "Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy không.")
@@ -327,6 +359,55 @@ export interface Applicant {
   degreeLevel: string
   graduationYear: number
   gpa: number
+}
+
+export interface ApplicantDocument {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  userName: string
+  address: string
+  birthday: string
+  phone: string
+  gender: "MALE" | "FEMALE"
+  userStatus: "ACTIVE" | "INACTIVE" | "PENDING"
+  createAt: string
+  updateAt: string
+  yearsOfExperience: number
+  careerObjective: string
+  universityName: string
+  degreeLevel: string
+  graduationYear: number
+  gpa: number
+  major: string
+  skills: string[]
+  certificateNames: string[]
+  issuingOrganizations: string[]
+  savedInListIds: string[]
+  searchableText: string
+}
+
+export interface ApplicantSearchRequest {
+  keywords?: string
+  minExperience?: number
+  minGpa?: number
+  skill?: string
+  major?: string
+  university?: string
+  gender?: "MALE" | "FEMALE"
+  userStatus?: "ACTIVE" | "INACTIVE" | "PENDING"
+  savedApplicantListId?: string
+  page?: number
+  size?: number
+}
+
+export interface ApplicantSearchResponse {
+  content: ApplicantDocument[]
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+  totalElements: number
 }
 
 export interface Application {
@@ -493,12 +574,15 @@ export const api = {
   createJobPost: (data: {
     title: string
     description: string
-    requirements: string
-    responsibilities: string
+    jobPosition: string
     location: string
-    salary: number
-    jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
-    categoryId: number
+    experience: string
+    minSalary: number
+    maxSalary: number
+    vacancies: number
+    jobType: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
+    employerId: string
+    categoryId?: string
   }) =>
     fetchApi<ApiResponse<any>>("/job-post/", {
       method: "POST",
@@ -507,15 +591,17 @@ export const api = {
 
   updateJobPost: (data: {
     id: string
-    title?: string
-    description?: string
-    requirements?: string
-    responsibilities?: string
-    location?: string
-    salary?: number
-    jobType?: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP"
-    status?: "ACTIVE" | "INACTIVE" | "EXPIRED"
-    categoryId?: number
+    employerId: string
+    title: string
+    description: string
+    jobPosition: string
+    location: string
+    experience: string
+    minSalary: number
+    maxSalary: number
+    vacancies: number
+    jobType: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
+    categoryId?: string
   }) =>
     fetchApi<ApiResponse<any>>("/job-post/update", {
       method: "PUT",
@@ -700,10 +786,37 @@ export const api = {
     return fetchApi<ApiResponse<any>>(`/employer/list?${queryParams.toString()}`)
   },
 
+  // Alternative endpoint for getting all employers
+  getAllEmployersAlt: (params?: {
+    keyword?: string
+    sort?: string
+    page?: number
+    size?: number
+  }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.keyword) queryParams.append("keyword", params.keyword)
+    if (params?.sort) queryParams.append("sort", params.sort)
+    if (params?.page !== undefined) queryParams.append("page", params.page.toString())
+    if (params?.size !== undefined) queryParams.append("size", params.size.toString())
+
+    return fetchApi<ApiResponse<any>>(`/employer?${queryParams.toString()}`)
+  },
+
   deleteEmployer: (id: string) =>
     fetchApi<ApiResponse<any>>(`/employer/del/${id}`, {
       method: "DELETE",
     }),
+
+  // Update employer status
+  updateEmployerStatus: (id: string, status: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED") =>
+    fetchApi<ApiResponse<any>>(`/employer/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
+  // Get employer statistics
+  getEmployerStatistics: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/employer/${id}/statistics`),
 
   // Applicant Management
   updateApplicant: (data: Applicant) =>
@@ -729,10 +842,37 @@ export const api = {
     return fetchApi<ApiResponse<any>>(`/applicant/list?${queryParams.toString()}`)
   },
 
+  // Alternative endpoint for getting all applicants
+  getAllApplicantsAlt: (params?: {
+    keyword?: string
+    sort?: string
+    page?: number
+    size?: number
+  }) => {
+    const queryParams = new URLSearchParams()
+    if (params?.keyword) queryParams.append("keyword", params.keyword)
+    if (params?.sort) queryParams.append("sort", params.sort)
+    if (params?.page !== undefined) queryParams.append("page", params.page.toString())
+    if (params?.size !== undefined) queryParams.append("size", params.size.toString())
+
+    return fetchApi<ApiResponse<any>>(`/applicant?${queryParams.toString()}`)
+  },
+
   deleteApplicant: (id: string) =>
     fetchApi<ApiResponse<any>>(`/applicant/del/${id}`, {
       method: "DELETE",
     }),
+
+  // Update applicant status
+  updateApplicantStatus: (id: string, status: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED") =>
+    fetchApi<ApiResponse<any>>(`/applicant/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    }),
+
+  // Get applicant statistics
+  getApplicantStatistics: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/applicant/${id}/statistics`),
 
   // Job Categories
   getJobCategories: (params?: {
@@ -810,5 +950,38 @@ export const api = {
       },
       body: JSON.stringify(filteredParams),
     })
+  },
+
+  // Applicant Search APIs
+  searchApplicants: (params: ApplicantSearchRequest) => {
+    // Lọc bỏ các field null/undefined/chuỗi rỗng để tránh gửi dữ liệu thừa
+    const filteredParams = Object.fromEntries(
+      Object.entries(params).filter(([_, value]) => value !== undefined && value !== null && value !== ""),
+    )
+
+    // Backend trả về trực tiếp Spring Boot Page object, không có ApiResponse wrapper
+    return fetch(`${API_BASE_URL}/search/applicants`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(filteredParams),
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return response.json()
+    })
+  },
+
+  searchApplicantsByKeywords: (keywords: string, page = 0, size = 20) => {
+    const queryParams = new URLSearchParams({
+      keywords,
+      page: page.toString(),
+      size: size.toString(),
+    })
+
+    return fetchApi<ApiResponse<ApplicantSearchResponse>>(`/search/applicants/keywords?${queryParams.toString()}`)
   },
 }

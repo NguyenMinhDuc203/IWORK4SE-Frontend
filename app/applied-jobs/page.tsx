@@ -42,6 +42,11 @@ export default function AppliedJobsPage() {
   ]
 
   const mapStatusToVietnamese = (status: string): string => {
+    // Kiểm tra nếu status là undefined, null hoặc empty string
+    if (!status) {
+      return "Không xác định";
+    }
+    
     switch (status.toUpperCase()) {
       case "PENDING":
         return "Mới ứng tuyển";
@@ -105,7 +110,7 @@ export default function AppliedJobsPage() {
           appliedAt: formatDate(app.appliedDate), // Sử dụng hàm định dạng
           status: mapStatusToVietnamese(app.status), // Sử dụng hàm chuyển đổi status
           cvFileName: app.cvFileName,
-          rawStatus: app.status,
+          rawStatus: app.status || "UNKNOWN",
         }));
 
         setApplications(formattedApplications);

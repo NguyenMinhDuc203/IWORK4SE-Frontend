@@ -41,14 +41,18 @@ export default function LoginPage() {
       localStorage.setItem("fullName", response.data.fullName)
       localStorage.setItem("email", response.data.email)
       localStorage.setItem("phone", response.data.phone)
+      // Notify other components (e.g., Header) to re-render auth state
+      window.dispatchEvent(new Event("auth:changed"))
 
       window.dispatchEvent(new Event("storage"))
 
       if (response.data.role === "ADMIN") {
         localStorage.setItem("isAdmin", "true")
-        router.push("/jobs")
+        router.push("/admin/dashboard")
       } else if (response.data.role === "APPLICANT") {
         router.push("/jobs")
+      }else if (response.data.role === "EMPLOYER") {
+        router.push("/")
       }
     } catch (err: any) {
       setError(err.message || "Đăng nhập thất bại")

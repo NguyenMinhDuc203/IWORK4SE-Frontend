@@ -22,12 +22,13 @@ import {
   Briefcase,
   Edit,
   ChevronDown,
+  BarChart3,
 } from "lucide-react"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userType, setUserType] = useState<"APPLICANT" | "EMPLOYER" | null>(null)
+  const [userType, setUserType] = useState<"APPLICANT" | "EMPLOYER" | "ADMIN" | null>(null)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const [isJobSeeking, setIsJobSeeking] = useState(true)
   const [userName, setUserName] = useState("User")
@@ -36,10 +37,32 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const checkAuthState = () => {
     const token = localStorage.getItem("token")
-    const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
+    const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
     const fullName = localStorage.getItem("fullName")
     setIsLoggedIn(!!token)
     setUserType(userTypeFromStorage)
+
+//     const syncAuthState = () => {
+//       const t = localStorage.getItem("token")
+//       const r = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
+//       setIsLoggedIn(!!t)
+//       setUserType(r)
+//     }
+
+//     const handleAuthChanged = () => syncAuthState()
+//     const handleStorage = (e: StorageEvent) => {
+//       if (e.key === "token" ||e.key === "userType") {
+//         syncAuthState()
+//       }
+//     }
+
+//     window.addEventListener("auth:changed", handleAuthChanged as EventListener)
+//     window.addEventListener("storage", handleStorage)
+
+//     return () => {
+//       window.removeEventListener("auth:changed", handleAuthChanged as EventListener)
+//       window.removeEventListener("storage", handleStorage)
+
     if (fullName) setUserName(fullName)
   }
 
@@ -105,6 +128,7 @@ export function Header() {
     localStorage.removeItem("isAdmin")
     setIsLoggedIn(false)
     setUserType(null)
+    window.dispatchEvent(new Event("auth:changed"))
     window.location.href = "/"
   }
 
@@ -161,6 +185,42 @@ export function Header() {
                     <Link href="/employer/jobs">
                       <Button variant="ghost" size="sm">
                         Quản lý việc làm
+                      </Button>
+                    </Link>
+                    <Link href="/employer/applicants">
+                      <Button variant="ghost" size="sm">
+                        Quản lý Ứng viên
+                      </Button>
+                    </Link>
+                  </>
+                )}
+
+                {userType === "ADMIN" && (
+                  <>
+                    <Link href="/admin/dashboard">
+                      <Button variant="ghost" size="sm">
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Admin Dashboard
+                      </Button>
+                    </Link>
+                    <Link href="/admin/jobs">
+                      <Button variant="ghost" size="sm">
+                        Quản lý việc làm
+                      </Button>
+                    </Link>
+                    <Link href="/admin/companies">
+                      <Button variant="ghost" size="sm">
+                        Quản lý công ty
+                      </Button>
+                    </Link>
+                    <Link href="/admin/applicants">
+                      <Button variant="ghost" size="sm">
+                        Quản lý ứng viên
+                      </Button>
+                    </Link>
+                    <Link href="/admin/statistics">
+                      <Button variant="ghost" size="sm">
+                        Thống kê
                       </Button>
                     </Link>
                   </>
@@ -248,7 +308,50 @@ export function Header() {
 
                         {/* Menu items */}
                         <div className="space-y-1">
-                          {userType === "APPLICANT" ? (
+                          {userType === "ADMIN" ? (
+                            <>
+                              <Link
+                                href="/admin/dashboard"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Building2 className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Admin Dashboard</span>
+                              </Link>
+                              <Link
+                                href="/admin/jobs"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Briefcase className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Quản lý việc làm</span>
+                              </Link>
+                              <Link
+                                href="/admin/companies"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Building2 className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Quản lý công ty</span>
+                              </Link>
+                              <Link
+                                href="/admin/applicants"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <Users className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Quản lý ứng viên</span>
+                              </Link>
+                              <Link
+                                href="/admin/statistics"
+                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                              >
+                                <BarChart3 className="h-5 w-5 text-primary" />
+                                <span className="text-sm">Thống kê</span>
+                              </Link>
+                            </>
+                          ) : userType === "APPLICANT" ? (
                             <>
                               {/* <Link
                                 href="/profile"
@@ -457,6 +560,46 @@ export function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Quản lý việc làm
+                      </Link>
+                    </>
+                  )}
+
+                  {userType === "ADMIN" && (
+                    <>
+                      <Link
+                        href="/admin/dashboard"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
+                      <Link
+                        href="/admin/jobs"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Quản lý việc làm
+                      </Link>
+                      <Link
+                        href="/admin/companies"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Quản lý công ty
+                      </Link>
+                      <Link
+                        href="/admin/applicants"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Quản lý ứng viên
+                      </Link>
+                      <Link
+                        href="/admin/statistics"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Thống kê
                       </Link>
                     </>
                   )}

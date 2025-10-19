@@ -23,7 +23,9 @@ import {
   Loader2,
   Flag,
 } from "lucide-react"
-import { api, type JobPost } from "@/lib/api"
+import { api, JobPost ,type JobPost} from "@/lib/api"
+// import ApiTestComponent from "@/components/api-test" // Removed
+import ClientOnly from "@/components/client-only"
 import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function HomePage() {
