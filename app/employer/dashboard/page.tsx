@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { 
@@ -21,14 +22,24 @@ import {
 import { api, JobPost, Application } from "@/lib/api"
 
 export default function EmployerDashboardPage() {
+  const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<JobPost[]>([])
   const [applications, setApplications] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userType, setUserType] = useState<"APPLICANT" | "EMPLOYER" | null>(null)
+  const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
     setUserType(userTypeFromStorage)
+    
+    // Check URL parameters for navigation from notifications
+    const tab = searchParams.get('tab')
+    const applicationId = searchParams.get('application')
+    
+    if (tab) {
+      setActiveTab(tab)
+    }
     
     if (userTypeFromStorage === "EMPLOYER") {
       fetchEmployerData()
@@ -39,69 +50,35 @@ export default function EmployerDashboardPage() {
       // Redirect to login
       window.location.href = "/login"
     }
-  }, [])
+  }, [searchParams])
 
   const fetchEmployerData = async () => {
     setIsLoading(true)
     try {
-      // Mock data for now
-      setJobs([
-        {
-          id: "1",
-          title: "Senior Frontend Developer",
-          description: "We are looking for a senior frontend developer...",
-          requirements: "5+ years experience with React...",
-          responsibilities: "Lead frontend development...",
-          location: "Hanoi",
-          salary: 30000000,
-          jobType: "FULL_TIME",
-          status: "ACTIVE",
-          employerId: "1",
-          categoryId: 1,
-          createdAt: "2024-01-01T00:00:00Z",
-          updatedAt: "2024-01-01T00:00:00Z"
-        },
-        {
-          id: "2",
-          title: "Backend Developer",
-          description: "Join our backend team...",
-          requirements: "Experience with Node.js...",
-          responsibilities: "Develop APIs...",
-          location: "Ho Chi Minh City",
-          salary: 25000000,
-          jobType: "FULL_TIME",
-          status: "ACTIVE",
-          employerId: "1",
-          categoryId: 1,
-          createdAt: "2024-01-05T00:00:00Z",
-          updatedAt: "2024-01-05T00:00:00Z"
-        }
-      ])
+      const userId = localStorage.getItem("userId")
+      if (!userId) return
 
-      setApplications([
-        {
-          id: "1",
-          applicantId: "1",
-          jobPostId: "1",
-          cvId: "1",
-          coverLetter: "I am very interested in this position...",
-          status: "PENDING",
-          appliedAt: "2024-01-15T10:00:00Z",
-          updatedAt: "2024-01-15T10:00:00Z"
-        },
-        {
-          id: "2",
-          applicantId: "2",
-          jobPostId: "1",
-          cvId: "2",
-          coverLetter: "I have relevant experience...",
-          status: "APPROVED",
-          appliedAt: "2024-01-10T14:30:00Z",
-          updatedAt: "2024-01-12T09:15:00Z"
-        }
-      ])
+      // Fetch employer's jobs
+      const jobsResponse = await api.getJobsByEmployer(userId, 0, 10)
+      if (jobsResponse.data) {
+        setJobs(jobsResponse.data.content || [])
+      }
+
+      // Fetch applications for employer
+      const applicationsResponse = await api.getApplicationsByEmployer(userId, 0, 20)
+      console.log("Applications response:", applicationsResponse)
+      if (applicationsResponse.data) {
+        // Ensure applications is always an array
+        const appsData = Array.isArray(applicationsResponse.data) 
+          ? applicationsResponse.data 
+          : (applicationsResponse.data as any).content || []
+        setApplications(appsData)
+      } else {
+        setApplications([])
+      }
     } catch (error) {
       console.error("Error fetching data:", error)
+      setApplications([])
     } finally {
       setIsLoading(false)
     }
@@ -135,6 +112,26 @@ export default function EmployerDashboardPage() {
     }
   }
 
+  const handleApproveApplication = async (applicationId: string) => {
+    try {
+      await api.approveApplication(applicationId)
+      // Refresh data
+      fetchEmployerData()
+    } catch (error) {
+      console.error("Error approving application:", error)
+    }
+  }
+
+  const handleRejectApplication = async (applicationId: string) => {
+    try {
+      await api.rejectApplication(applicationId)
+      // Refresh data
+      fetchEmployerData()
+    } catch (error) {
+      console.error("Error rejecting application:", error)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -157,8 +154,39 @@ export default function EmployerDashboardPage() {
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "overview"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Tổng quan
+              </button>
+              <button
+                onClick={() => setActiveTab("applications")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "applications"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Ứng viên ứng tuyển ({Array.isArray(applications) ? applications.length : 0})
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Content based on active tab */}
+        {activeTab === "overview" && (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -180,7 +208,7 @@ export default function EmployerDashboardPage() {
                   <Users className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{applications.length}</p>
+                  <p className="text-2xl font-bold">{Array.isArray(applications) ? applications.length : 0}</p>
                   <p className="text-sm text-muted-foreground">Ứng viên</p>
                 </div>
               </div>
@@ -195,7 +223,7 @@ export default function EmployerDashboardPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {applications.filter(app => app.status === "PENDING").length}
+                    {Array.isArray(applications) ? applications.filter(app => app.status === "PENDING").length : 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Chờ xem xét</p>
                 </div>
@@ -237,54 +265,75 @@ export default function EmployerDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {applications.map((application) => (
-                    <div key={application.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="font-semibold mb-1">Nguyễn Văn A</h3>
-                          <p className="text-sm text-muted-foreground mb-2">Senior Frontend Developer</p>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {new Date(application.appliedAt).toLocaleDateString('vi-VN')}
-                            </div>
-                            <div className="flex items-center">
-                              <MapPin className="h-3 w-3 mr-1" />
-                              Hà Nội
-                            </div>
-                            <div className="flex items-center">
-                              <DollarSign className="h-3 w-3 mr-1" />
-                              5 năm kinh nghiệm
+                  {!Array.isArray(applications) || applications.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>Chưa có ứng viên nào ứng tuyển</p>
+                    </div>
+                  ) : (
+                    applications.slice(0, 5).map((application) => (
+                      <div key={application.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold mb-1">{application.applicantName || 'Ứng viên'}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">{application.jobTitle}</p>
+                            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1" />
+                                {new Date(application.appliedDate).toLocaleDateString('vi-VN')}
+                              </div>
+                              <div className="flex items-center">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                {application.location}
+                              </div>
+                              <div className="flex items-center">
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                {application.minSalary && application.maxSalary 
+                                  ? `${(application.minSalary / 1000000).toFixed(0)}M - ${(application.maxSalary / 1000000).toFixed(0)}M`
+                                  : 'Lương thỏa thuận'
+                                }
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center space-x-2">
+                            {getStatusIcon(application.status)}
+                            <span className="text-sm font-medium">
+                              {getStatusText(application.status)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          {getStatusIcon(application.status)}
-                          <span className="text-sm font-medium">
-                            {getStatusText(application.status)}
-                          </span>
+                        <div className="mt-3 flex space-x-2">
+                          {application.cvUrl && (
+                            <Button size="sm" variant="outline" asChild>
+                              <a href={application.cvUrl} target="_blank" rel="noopener noreferrer">
+                                <Eye className="h-3 w-3 mr-1" />
+                                Xem CV
+                              </a>
+                            </Button>
+                          )}
+                          {application.status === "PENDING" && (
+                            <>
+                              <Button 
+                                size="sm"
+                                onClick={() => handleApproveApplication(application.id)}
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Chấp nhận
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => handleRejectApplication(application.id)}
+                              >
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Từ chối
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div className="mt-3 flex space-x-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-3 w-3 mr-1" />
-                          Xem CV
-                        </Button>
-                        {application.status === "PENDING" && (
-                          <>
-                            <Button size="sm">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Chấp nhận
-                            </Button>
-                            <Button size="sm" variant="destructive">
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Từ chối
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -357,6 +406,99 @@ export default function EmployerDashboardPage() {
             </Card>
           </div>
         </div>
+          </>
+        )}
+
+        {activeTab === "applications" && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Danh sách ứng viên ứng tuyển</CardTitle>
+                <CardDescription>
+                  Tất cả ứng viên đã ứng tuyển vào các tin tuyển dụng của bạn
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {!Array.isArray(applications) || applications.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có ứng viên nào ứng tuyển</h3>
+                      <p className="text-gray-600">Khi có ứng viên ứng tuyển vào tin tuyển dụng của bạn, họ sẽ xuất hiện ở đây.</p>
+                    </div>
+                  ) : (
+                    applications.map((application) => (
+                      <div key={application.id} className="border rounded-lg p-6 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg mb-2">{application.applicantName || 'Ứng viên'}</h3>
+                            <p className="text-muted-foreground mb-3">{application.jobTitle}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                                <span>Ứng tuyển: {new Date(application.appliedDate).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                                <span>{application.location}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-2 text-gray-400" />
+                                <span>
+                                  {application.minSalary && application.maxSalary 
+                                    ? `${(application.minSalary / 1000000).toFixed(0)}M - ${(application.maxSalary / 1000000).toFixed(0)}M`
+                                    : 'Lương thỏa thuận'
+                                  }
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-2">
+                            <div className="flex items-center space-x-2">
+                              {getStatusIcon(application.status)}
+                              <span className="font-medium">
+                                {getStatusText(application.status)}
+                              </span>
+                            </div>
+                            <div className="flex space-x-2">
+                              {application.cvUrl && (
+                                <Button size="sm" variant="outline" asChild>
+                                  <a href={application.cvUrl} target="_blank" rel="noopener noreferrer">
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    Xem CV
+                                  </a>
+                                </Button>
+                              )}
+                              {application.status === "PENDING" && (
+                                <>
+                                  <Button 
+                                    size="sm"
+                                    onClick={() => handleApproveApplication(application.id)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Chấp nhận
+                                  </Button>
+                                  <Button 
+                                    size="sm" 
+                                    variant="destructive"
+                                    onClick={() => handleRejectApplication(application.id)}
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Từ chối
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

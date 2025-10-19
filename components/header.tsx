@@ -24,6 +24,7 @@ import {
   ChevronDown,
   BarChart3,
 } from "lucide-react"
+import { NotificationBell } from "./notification-bell"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -226,9 +227,7 @@ export function Header() {
                   </>
                 )}
 
-                <Button variant="ghost" size="sm">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                {userType === "EMPLOYER" && <NotificationBell />}
 
                 <div className="relative pb-2" ref={dropdownRef}
                   onMouseEnter={handleMouseEnter}

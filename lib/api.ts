@@ -989,4 +989,47 @@ export const api = {
 
     return fetchApi<ApiResponse<ApplicantSearchResponse>>(`/search/applicants/keywords?${queryParams.toString()}`)
   },
+
+  // Notification APIs
+  createNotification: (data: {
+    userId: string
+    applicationId?: string
+    type: string
+    message: string
+  }) =>
+    fetchApi<ApiResponse<any>>("/notification/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  createApplicationNotification: (userId: string, applicationId: string, message: string) =>
+    fetchApi<ApiResponse<any>>(`/notification/application-status?userId=${userId}&applicationId=${applicationId}&message=${message}`, {
+      method: "POST",
+    }),
+
+  getNotificationsByUser: (userId: string, page = 0, size = 10) =>
+    fetchApi<ApiResponse<any>>(`/notification/user/${userId}?page=${page}&size=${size}`),
+
+  getNotificationById: (id: string) => fetchApi<ApiResponse<any>>(`/notification/${id}`),
+
+  getRecentNotificationsByUser: (userId: string) =>
+    fetchApi<ApiResponse<any[]>>(`/notification/user/${userId}/recent`),
+
+  getUnreadNotificationCount: (userId: string) =>
+    fetchApi<ApiResponse<number>>(`/notification/user/${userId}/unread-count`),
+
+  markNotificationAsRead: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/notification/${id}/mark-read`, {
+      method: "PUT",
+    }),
+
+  markAllNotificationsAsRead: (userId: string) =>
+    fetchApi<ApiResponse<any>>(`/notification/user/${userId}/mark-all-read`, {
+      method: "PUT",
+    }),
+
+  deleteNotification: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/notification/${id}`, {
+      method: "DELETE",
+    }),
 }
