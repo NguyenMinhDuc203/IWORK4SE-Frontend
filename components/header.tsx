@@ -149,12 +149,12 @@ export function Header() {
           </Link>
 
           {/* Search Bar - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
+          {/* <div className="hidden md:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Tìm việc làm, công ty..." className="pl-10 pr-4" />
             </div>
-          </div>
+          </div> */}
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-6">

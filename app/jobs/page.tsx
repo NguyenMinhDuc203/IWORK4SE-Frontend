@@ -8,15 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MapPin, Briefcase, DollarSign, Building2, Filter, Flag, Loader2 } from "lucide-react"
+import { Search, MapPin, Briefcase, DollarSign, Building2, Filter, Flag, Loader2, } from "lucide-react"
 import { api, type JobPost, type JobCategory } from "@/lib/api"
 import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<JobPost[]>([])
-  const [categories, setCategories] = useState<JobCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true)
   const [pagination, setPagination] = useState({
     pageNumber: 0,
     pageSize: 12,
