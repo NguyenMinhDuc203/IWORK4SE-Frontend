@@ -217,7 +217,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">85%</p>
-                  <p className="text-sm text-muted-foreground">Hồ sơ hoàn thiện</p>
+                  <p className="text-sm text-muted-foreground">H�� sơ hoàn thiện</p>
                 </div>
               </div>
             </CardContent>

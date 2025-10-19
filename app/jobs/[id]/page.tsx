@@ -6,32 +6,37 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  Building2, 
-  Star,
-  Heart,
+import {
+  MapPin,
+  DollarSign,
+  Building2,
   Share2,
   Users,
   Calendar,
   CheckCircle,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  Briefcase,
+  Flag,
 } from "lucide-react"
-import { api, JobPost } from "@/lib/api"
+import { api, type JobPost } from "@/lib/api"
+import { ApplyJobDialog } from "@/components/apply-job-dialog"
+import { LoginDialog } from "@/components/login-dialog"
+import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function JobDetailPage() {
   const params = useParams()
   const jobId = params.id as string
-  
+
   const [job, setJob] = useState<JobPost | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isApplying, setIsApplying] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  const [showApplyDialog, setShowApplyDialog] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+
+  const { isSaved, toggleSaveJob: toggleSaveJobContext } = useSavedJobs()
 
   useEffect(() => {
     if (jobId) {
@@ -50,34 +55,62 @@ export default function JobDetailPage() {
       setIsLoading(false)
     }
   }
+  const formatJobDescription = (description: string) => {
+    if (!description) {
+      return ""
+    }
+    const withBold = description.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
 
-  const handleApply = async () => {
-    setIsApplying(true)
-    try {
-      // Check if user is logged in
-      const token = localStorage.getItem("token")
-      if (!token) {
-        // Redirect to login
-        window.location.href = "/login"
-        return
-      }
+    const withLineBreaks = withBold.replace(/\n/g, "<br />")
 
-      // For now, just show success message
-      // In real implementation, you would need to select a CV first
-      setSuccess("Đơn ứng tuyển đã được gửi thành công!")
-    } catch (error: any) {
-      setError(error.message || "Không thể gửi đơn ứng tuyển")
-    } finally {
-      setIsApplying(false)
+    return withLineBreaks
+  }
+  const formatSalaryShort = (salary: number) => {
+    if (salary >= 1000000) {
+      const millions = salary / 1000000
+      return `${Number(millions.toFixed(1))} Triệu`
+    }
+
+    return salary.toLocaleString()
+  }
+
+  const formatMinSalaryShort = (salary: number) => {
+    if (salary >= 1000000) {
+      const millions = salary / 1000000
+      return `${Number(millions.toFixed(1))}`
+    }
+
+    return salary.toLocaleString()
+  }
+
+  const handleApply = () => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setShowLoginDialog(true)
+    } else {
+      setShowApplyDialog(true)
     }
   }
 
+  const handleLoginSuccess = () => {
+    setShowApplyDialog(true)
+  }
+
   const handleSaveJob = async () => {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      setShowLoginDialog(true)
+      return
+    }
+
     try {
-      await api.saveJob({ jobPostId: jobId })
-      setIsSaved(true)
+      await toggleSaveJobContext(jobId)
+      setSuccess(isSaved(jobId) ? "Đã bỏ lưu việc làm" : "Đã lưu việc làm thành công!")
+      setTimeout(() => setSuccess(""), 3000)
     } catch (error) {
       console.error("Error saving job:", error)
+      setError("Không thể lưu việc làm. Vui lòng thử lại.")
+      setTimeout(() => setError(""), 3000)
     }
   }
 
@@ -141,7 +174,15 @@ export default function JobDetailPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Building2 className="h-8 w-8 text-primary" />
+                      {job.logoUrl ? (
+                        <img
+                          src={job.logoUrl || "/placeholder.svg"}
+                          alt={job.companyName || "Company logo"}
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="h-6 w-6 text-primary" />
+                      )}
                     </div>
                     <div>
                       <CardTitle className="text-2xl mb-2">{job.title}</CardTitle>
@@ -150,12 +191,12 @@ export default function JobDetailPage() {
                       </CardDescription>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  {/* <div className="flex items-center space-x-2">
                     <div className="flex items-center text-yellow-500">
                       <Star className="h-5 w-5 fill-current" />
                       <span className="ml-1">4.8</span>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </CardHeader>
               <CardContent>
@@ -164,26 +205,34 @@ export default function JobDetailPage() {
                     <MapPin className="h-4 w-4 mr-2" />
                     {job.location}
                   </div>
+
                   <div className="flex items-center text-muted-foreground">
-                    <DollarSign className="h-4 w-4 mr-2" />
-                    {job.minSalary && job.maxSalary 
-                      ? `${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()} VNĐ`
-                      : job.minSalary 
-                        ? `Từ ${job.minSalary.toLocaleString()} VNĐ`
-                        : job.maxSalary 
-                          ? `Đến ${job.maxSalary.toLocaleString()} VNĐ`
-                          : "Thỏa thuận"
-                    }
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {job.jobType === "FULL_TIME" ? "Toàn thời gian" :
-                     job.jobType === "PART_TIME" ? "Bán thời gian" :
-                     job.jobType === "CONTRACT" ? "Hợp đồng" : "Thực tập"}
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    {job.jobType === "INTERNSHIP"
+                      ? "Internship"
+                      : job.jobType === "FRESHER"
+                        ? "Fresher"
+                        : job.jobType === "JUNIOR"
+                          ? "Junior"
+                          : job.jobType === "SENIOR"
+                            ? "Senior"
+                            : job.jobType === "MANAGER"
+                              ? "Manager"
+                              : "Không xác định"}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Users className="h-4 w-4 mr-2" />
                     {job.vacancies ? `${job.vacancies} vị trí` : "Không giới hạn"}
+                  </div>
+                  <div className="flex items-center text-muted-foreground">
+                    <DollarSign className="h-4 w-6 mr-1" />
+                    {job.minSalary && job.maxSalary
+                      ? `${formatMinSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
+                      : job.minSalary
+                        ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
+                        : job.maxSalary
+                          ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
+                          : "Thỏa thuận"}
                   </div>
                 </div>
 
@@ -191,20 +240,20 @@ export default function JobDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center text-muted-foreground">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Đăng ngày: {new Date(job.postedDate).toLocaleDateString('vi-VN')}
+                    Đăng ngày: {new Date(job.postedDate).toLocaleDateString("vi-VN")}
                   </div>
                   <div className="flex items-center text-muted-foreground">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Hạn nộp: {new Date(job.closingDate).toLocaleDateString('vi-VN')}
+                    Hạn nộp: {new Date(job.closingDate).toLocaleDateString("vi-VN")}
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                {/* <div className="flex flex-wrap gap-2">
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">React</span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">TypeScript</span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Next.js</span>
                   <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Node.js</span>
-                </div>
+                </div> */}
               </CardContent>
             </Card>
 
@@ -214,9 +263,10 @@ export default function JobDetailPage() {
                 <CardTitle>Mô tả công việc</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose max-w-none">
-                  <p className="whitespace-pre-wrap">{job.description}</p>
-                </div>
+                <div
+                  className="prose max-w-none"
+                  dangerouslySetInnerHTML={{ __html: formatJobDescription(job.description) }}
+                />
               </CardContent>
             </Card>
 
@@ -260,7 +310,7 @@ export default function JobDetailPage() {
                     <AlertDescription>{success}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 {error && (
                   <Alert variant="destructive" className="mb-4">
                     <AlertDescription>{error}</AlertDescription>
@@ -268,36 +318,16 @@ export default function JobDetailPage() {
                 )}
 
                 <div className="space-y-4">
-                  <Button 
-                    onClick={handleApply} 
-                    className="w-full" 
-                    size="lg"
-                    disabled={isApplying}
-                  >
-                    {isApplying ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang gửi...
-                      </>
-                    ) : (
-                      "Ứng tuyển ngay"
-                    )}
+                  <Button onClick={handleApply} className="w-full" size="lg">
+                    Ứng tuyển ngay
                   </Button>
 
                   <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={handleSaveJob}
-                    >
-                      <Heart className={`h-4 w-4 mr-2 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
-                      {isSaved ? 'Đã lưu' : 'Lưu việc làm'}
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
+                      <Flag className={`h-4 w-4 mr-2 ${isSaved(jobId) ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                      {isSaved(jobId) ? "Đã lưu" : "Lưu việc làm"}
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={handleShare}
-                    >
+                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />
                       Chia sẻ
                     </Button>
@@ -322,7 +352,7 @@ export default function JobDetailPage() {
                       <p className="text-sm text-muted-foreground">{job.categoryName || "Công nghệ thông tin"}</p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center text-muted-foreground">
                       <Users className="h-4 w-4 mr-2" />
@@ -338,7 +368,7 @@ export default function JobDetailPage() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full bg-transparent">
                     Xem trang công ty
                   </Button>
                 </div>
@@ -370,6 +400,10 @@ export default function JobDetailPage() {
           </div>
         </div>
       </div>
+
+      <ApplyJobDialog open={showApplyDialog} onOpenChange={setShowApplyDialog} jobId={jobId} jobTitle={job.title} />
+
+      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} onLoginSuccess={handleLoginSuccess} />
     </div>
   )
 }
