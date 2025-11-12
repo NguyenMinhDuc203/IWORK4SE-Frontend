@@ -17,10 +17,12 @@ import {
   Filter,
   Star
 } from "lucide-react"
+import { api } from "@/lib/api"
 
 export default function ApplicantManagementPage() {
   const router = useRouter()
   const [userType, setUserType] = useState<string | null>(null)
+  const [stats, setStats] = useState({ savedApplicants: 0, listsCreated: 0, contacted: 0 })
 
   useEffect(() => {
     const role = localStorage.getItem("userType")
@@ -28,7 +30,32 @@ export default function ApplicantManagementPage() {
     if (role !== "EMPLOYER") {
       router.push("/login")
     }
+    if (role === "EMPLOYER") {
+      loadStats()
+    }
   }, [router])
+
+  const loadStats = async () => {
+    try {
+      const employerId = localStorage.getItem("userId")
+      if (!employerId) return
+      // Get lists
+      const listsRes = await api.getApplicantListsByEmployer(employerId)
+      const lists = listsRes.data || []
+      const listsCount = lists.length
+      // Get total saved applicants across employer (page size 1 to read totalElements)
+      const totalRes = await api.getAllSavedApplicantsByEmployer(employerId, 0, 1)
+      const savedApplicants = totalRes.data?.totalElements ?? 0
+      // Sum contacted across lists using page size 1 per list
+      const contactedCounts = await Promise.all(
+        lists.map((l: any) => api.getApplicantsByListAndContactStatus(l.id, true, 0, 1))
+      )
+      const contacted = contactedCounts.reduce((sum, r: any) => sum + (r.data?.totalElements ?? 0), 0)
+      setStats({ savedApplicants, listsCreated: listsCount, contacted })
+    } catch (e) {
+      // Silent fail; keep defaults
+    }
+  }
 
   if (userType !== "EMPLOYER") {
     return null
@@ -131,7 +158,7 @@ export default function ApplicantManagementPage() {
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{stats.savedApplicants}</p>
                 <p className="text-sm text-gray-600">Ứng viên đã lưu</p>
               </div>
             </div>
@@ -145,7 +172,7 @@ export default function ApplicantManagementPage() {
                 <FolderOpen className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{stats.listsCreated}</p>
                 <p className="text-sm text-gray-600">Danh sách đã tạo</p>
               </div>
             </div>
@@ -159,7 +186,7 @@ export default function ApplicantManagementPage() {
                 <UserPlus className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{stats.contacted}</p>
                 <p className="text-sm text-gray-600">Đã liên hệ</p>
               </div>
             </div>

@@ -42,7 +42,7 @@ export default function ApplicantSearchPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [selectedApplicant, setSelectedApplicant] = useState<ApplicantDocument | null>(null)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
-  const [availableLists, setAvailableLists] = useState<any[]>([])
+  const [availableLists, setAvailableLists] = useState<{ id: string; listName: string }[]>([])
   const [saveForm, setSaveForm] = useState({
     listId: "",
     notes: "",
@@ -110,14 +110,19 @@ export default function ApplicantSearchPage() {
     setApplicants([])
   }
 
-  const handleSaveApplicant = (applicant: ApplicantDocument) => {
+  const handleSaveApplicant = async (applicant: ApplicantDocument) => {
     setSelectedApplicant(applicant)
     setShowSaveDialog(true)
-    // TODO: Load available lists
-    setAvailableLists([
-      { id: "LIST001", listName: "Java Developers" },
-      { id: "LIST002", listName: "Senior Candidates" },
-    ])
+    try {
+      const employerId = localStorage.getItem("userId")
+      if (!employerId) throw new Error("Không tìm thấy thông tin employer")
+      const res = await api.getApplicantListsByEmployer(employerId)
+      const lists = (res.data || []).map((l: any) => ({ id: l.id, listName: l.listName }))
+      setAvailableLists(lists)
+    } catch (err: any) {
+      setAvailableLists([])
+      setError(err?.message || "Không thể tải danh sách")
+    }
   }
 
   const handleSave = async () => {
@@ -125,21 +130,16 @@ export default function ApplicantSearchPage() {
 
     setIsSaving(true)
     try {
-      // TODO: Implement API call to save applicant
-      // await api.saveApplicant({
-      //   listId: saveForm.listId,
-      //   applicantId: selectedApplicant.id,
-      //   notes: saveForm.notes
-      // })
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await api.saveApplicantToList({
+        listId: saveForm.listId,
+        applicantId: selectedApplicant.id,
+        notes: saveForm.notes || undefined,
+      })
       
       setShowSaveDialog(false)
       setSaveForm({ listId: "", notes: "" })
       setSelectedApplicant(null)
       
-      // Show success message
       alert("Đã lưu ứng viên vào danh sách thành công!")
     } catch (e: any) {
       setError(e?.message || "Lưu ứng viên thất bại")

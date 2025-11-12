@@ -48,13 +48,16 @@ export default function AdminDashboard() {
     try {
       setIsLoading(true)
       
-      // Fetch jobs data
-      const jobsResponse = await api.getJobs({ page: 0, size: 100 })
-      const allJobs = jobsResponse.data.content || []
-      
-      // Fetch companies data
-      const companiesResponse = await api.getAllEmployers({ page: 0, size: 100 })
-      const allCompanies = companiesResponse.data.content || []
+      // Fetch all data in parallel
+      const [jobsResponse, companiesResponse, applicantsResponse] = await Promise.all([
+        api.getJobs({ page: 0, size: 100 }).catch(() => ({ data: { content: [] } })),
+        api.getAllEmployers({ page: 0, size: 100 }).catch(() => ({ data: { content: [] } })),
+        api.getAllApplicants({ page: 0, size: 100 }).catch(() => ({ data: { content: [] } }))
+      ])
+
+      const allJobs = (jobsResponse.data as any)?.content || []
+      const allCompanies = (companiesResponse.data as any)?.content || []
+      const allApplicants = (applicantsResponse.data as any)?.content || []
       
       // Calculate stats
       const totalJobs = allJobs.length
@@ -66,11 +69,29 @@ export default function AdminDashboard() {
         .sort((a: any, b: any) => new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime())
         .slice(0, 5)
 
+      // Get total applications (approximate by fetching applications for first few jobs)
+      // In production, you might want a dedicated API endpoint for this
+      let totalApplications = 0
+      try {
+        const sampleJobs = allJobs.slice(0, 10)
+        const appPromises = sampleJobs.map((job: any) =>
+          api.getApplicationsByJob(job.id, 0, 100).catch(() => ({ data: [] }))
+        )
+        const appResponses = await Promise.all(appPromises)
+        const sampleApps = appResponses.flatMap((res: any) => res.data || [])
+        // Estimate total: if we sampled 10 jobs and got X applications, estimate for all jobs
+        if (sampleJobs.length > 0 && allJobs.length > 0) {
+          totalApplications = Math.round((sampleApps.length / sampleJobs.length) * allJobs.length)
+        }
+      } catch (error) {
+        console.error("Error estimating applications:", error)
+      }
+
       setStats({
         totalJobs,
         totalCompanies: allCompanies.length,
-        totalApplicants: 0, // This would need a separate API call
-        totalApplications: 0, // This would need a separate API call
+        totalApplicants: allApplicants.length,
+        totalApplications,
         pendingJobs,
         activeJobs,
         recentJobs

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { 
   Briefcase, 
   Search,
@@ -17,7 +18,8 @@ import {
   MapPin,
   DollarSign,
   Calendar,
-  Building2
+  Building2,
+  MoreHorizontal
 } from "lucide-react"
 import Link from "next/link"
 import { api, JobPost } from "@/lib/api"
@@ -231,6 +233,40 @@ export default function AdminJobsPage() {
                           </Button>
                         </div>
                       )}
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {job.jobStatus !== "ACCEPTED" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job.id, "ACCEPTED")}>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Đặt thành Đã duyệt
+                            </DropdownMenuItem>
+                          )}
+                          {job.jobStatus !== "PENDING" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job.id, "PENDING")}>
+                              <Clock className="h-4 w-4 mr-2" />
+                              Đặt thành Chờ duyệt
+                            </DropdownMenuItem>
+                          )}
+                          {job.jobStatus !== "REJECTED" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job.id, "REJECTED")}>
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Đặt thành Từ chối
+                            </DropdownMenuItem>
+                          )}
+                          {job.jobStatus !== "EXPIRED" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job.id, "EXPIRED")}>
+                              <Clock className="h-4 w-4 mr-2" />
+                              Đặt thành Hết hạn
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>

@@ -89,16 +89,14 @@ export default function AdminCompaniesPage() {
     fetchCompanies()
   }
 
-  // TODO: Implement status management later
-  // const handleStatusChange = async (companyId: string, newStatus: string) => {
-  //   try {
-  //     await api.updateEmployerStatus(companyId, newStatus as any)
-  //     // Refresh the companies list
-  //     fetchCompanies()
-  //   } catch (error) {
-  //     console.error("Error updating company status:", error)
-  //   }
-  // }
+  const handleStatusChange = async (companyId: string, newStatus: string) => {
+    try {
+      await api.updateEmployerStatus(companyId, newStatus as any)
+      fetchCompanies()
+    } catch (error) {
+      console.error("Error updating company status:", error)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -173,8 +171,8 @@ export default function AdminCompaniesPage() {
             ))}
           </div>
         ) : companies.length > 0 ? (
-          companies.map((company) => (
-            <Card key={company.id} className="hover:shadow-md transition-shadow">
+          companies.map((company, idx) => (
+            <Card key={company.id || company.email || idx} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -244,8 +242,7 @@ export default function AdminCompaniesPage() {
                         </Button>
                       </Link> */}
                       
-                      {/* TODO: Implement status management later */}
-                      {/* <DropdownMenu>
+                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
                             <MoreHorizontal className="h-4 w-4" />
@@ -269,7 +266,7 @@ export default function AdminCompaniesPage() {
                             Xóa
                           </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu> */}
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>

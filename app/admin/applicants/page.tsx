@@ -73,11 +73,11 @@ export default function AdminApplicantsPage() {
         setApplicants([])
         setTotalPages(0)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching applicants:", error)
       
       // Retry logic for timeout errors
-      if (error.message.includes("timeout") && retryCount < 2) {
+      if (error?.message?.includes("timeout") && retryCount < 2) {
         console.log(`Retrying in 2 seconds... (attempt ${retryCount + 1})`)
         setTimeout(() => {
           fetchApplicants(retryCount + 1)
@@ -97,16 +97,14 @@ export default function AdminApplicantsPage() {
     fetchApplicants()
   }
 
-  // TODO: Implement status management later
-  // const handleStatusChange = async (applicantId: string, newStatus: string) => {
-  //   try {
-  //     await api.updateApplicantStatus(applicantId, newStatus as any)
-  //     // Refresh the applicants list
-  //     fetchApplicants()
-  //   } catch (error) {
-  //     console.error("Error updating applicant status:", error)
-  //   }
-  // }
+  const handleStatusChange = async (applicantId: string, newStatus: string) => {
+    try {
+      await api.updateApplicantStatus(applicantId, newStatus as any)
+      fetchApplicants()
+    } catch (error: any) {
+      console.error("Error updating applicant status:", error)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -198,8 +196,8 @@ export default function AdminApplicantsPage() {
             ))}
           </div>
         ) : applicants.length > 0 ? (
-          applicants.map((applicant) => (
-            <Card key={applicant.id} className="hover:shadow-md transition-shadow">
+          applicants.map((applicant, idx) => (
+            <Card key={applicant.id || applicant.email || idx} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -278,8 +276,7 @@ export default function AdminApplicantsPage() {
                         </Button>
                       </Link> */}
                       
-                      {/* TODO: Implement status management later */}
-                      {/* <DropdownMenu>
+                      <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" size="sm">
                             <MoreHorizontal className="h-4 w-4" />
@@ -303,7 +300,7 @@ export default function AdminApplicantsPage() {
                             Xóa
                           </DropdownMenuItem>
                         </DropdownMenuContent>
-                      </DropdownMenu> */}
+                      </DropdownMenu>
                     </div>
                   </div>
                 </div>

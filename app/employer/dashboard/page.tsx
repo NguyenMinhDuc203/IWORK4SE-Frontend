@@ -13,7 +13,6 @@ import {
   Calendar,
   MapPin,
   DollarSign,
-  Clock,
   CheckCircle,
   XCircle,
   AlertCircle
@@ -25,6 +24,7 @@ export default function EmployerDashboardPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userType, setUserType] = useState<"APPLICANT" | "EMPLOYER" | null>(null)
+  const [actioning, setActioning] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
@@ -44,66 +44,77 @@ export default function EmployerDashboardPage() {
   const fetchEmployerData = async () => {
     setIsLoading(true)
     try {
-      // Mock data for now
-      setJobs([
-        {
-          id: "1",
-          title: "Senior Frontend Developer",
-          description: "We are looking for a senior frontend developer...",
-          requirements: "5+ years experience with React...",
-          responsibilities: "Lead frontend development...",
-          location: "Hanoi",
-          salary: 30000000,
-          jobType: "FULL_TIME",
-          status: "ACTIVE",
-          employerId: "1",
-          categoryId: 1,
-          createdAt: "2024-01-01T00:00:00Z",
-          updatedAt: "2024-01-01T00:00:00Z"
-        },
-        {
-          id: "2",
-          title: "Backend Developer",
-          description: "Join our backend team...",
-          requirements: "Experience with Node.js...",
-          responsibilities: "Develop APIs...",
-          location: "Ho Chi Minh City",
-          salary: 25000000,
-          jobType: "FULL_TIME",
-          status: "ACTIVE",
-          employerId: "1",
-          categoryId: 1,
-          createdAt: "2024-01-05T00:00:00Z",
-          updatedAt: "2024-01-05T00:00:00Z"
-        }
+      const employerId = localStorage.getItem("userId")
+      if (!employerId) throw new Error("Không tìm thấy thông tin employer")
+
+      const [jobsRes, appsRes] = await Promise.all([
+        api.getJobsByEmployer(employerId, 0, 10).catch(() => null),
+        api.getApplicationsByEmployer(employerId, 0, 10).catch(() => null),
       ])
 
-      setApplications([
-        {
-          id: "1",
-          applicantId: "1",
-          jobPostId: "1",
-          cvId: "1",
-          coverLetter: "I am very interested in this position...",
-          status: "PENDING",
-          appliedAt: "2024-01-15T10:00:00Z",
-          updatedAt: "2024-01-15T10:00:00Z"
-        },
-        {
-          id: "2",
-          applicantId: "2",
-          jobPostId: "1",
-          cvId: "2",
-          coverLetter: "I have relevant experience...",
-          status: "APPROVED",
-          appliedAt: "2024-01-10T14:30:00Z",
-          updatedAt: "2024-01-12T09:15:00Z"
-        }
-      ])
+      const jobsData = jobsRes?.data as any
+      const jobsList: JobPost[] = Array.isArray(jobsData?.content)
+        ? jobsData.content
+        : Array.isArray(jobsData)
+        ? jobsData
+        : []
+      setJobs(jobsList)
+
+      const appsData = appsRes?.data as any
+      const appsList: Application[] = Array.isArray(appsData) ? appsData : Array.isArray(appsData?.content) ? appsData.content : []
+      setApplications(appsList)
     } catch (error) {
-      console.error("Error fetching data:", error)
+      console.error("Error fetching employer dashboard data:", error)
+      setJobs([])
+      setApplications([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const setLoadingFor = (id: string, value: boolean) => {
+    setActioning(prev => ({ ...prev, [id]: value }))
+  }
+
+  const handleViewCV = async (app: Application) => {
+    try {
+      if (app.cvUrl) {
+        window.open(app.cvUrl, "_blank")
+        return
+      }
+      const res = await api.getApplicationById(app.id)
+      const url = res?.data?.cvUrl
+      if (url) {
+        window.open(url, "_blank")
+      } else {
+        alert("Không tìm thấy CV cho ứng viên này")
+      }
+    } catch (e) {
+      alert("Không thể mở CV. Vui lòng thử lại sau.")
+    }
+  }
+
+  const handleApprove = async (id: string) => {
+    try {
+      setLoadingFor(id, true)
+      await api.approveApplication(id)
+      setApplications(prev => prev.map(a => a.id === id ? { ...a, status: "APPROVED" } as Application : a))
+    } catch (e) {
+      alert("Không thể chấp nhận ứng tuyển. Vui lòng thử lại.")
+    } finally {
+      setLoadingFor(id, false)
+    }
+  }
+
+  const handleReject = async (id: string) => {
+    try {
+      setLoadingFor(id, true)
+      await api.rejectApplication(id)
+      setApplications(prev => prev.map(a => a.id === id ? { ...a, status: "REJECTED" } as Application : a))
+    } catch (e) {
+      alert("Không thể từ chối ứng tuyển. Vui lòng thử lại.")
+    } finally {
+      setLoadingFor(id, false)
     }
   }
 
@@ -229,7 +240,7 @@ export default function EmployerDashboardPage() {
                     Các ứng viên đã ứng tuyển vào việc làm của bạn
                   </CardDescription>
                 </div>
-                <Link href="/employer/applications">
+                <Link href="/employer/applicants">
                   <Button variant="outline" size="sm">
                     Xem tất cả
                   </Button>
@@ -241,20 +252,20 @@ export default function EmployerDashboardPage() {
                     <div key={application.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1">Nguyễn Văn A</h3>
-                          <p className="text-sm text-muted-foreground mb-2">Senior Frontend Developer</p>
+                          <h3 className="font-semibold mb-1">{application.applicantName}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">{application.jobTitle}</p>
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1" />
-                              {new Date(application.appliedAt).toLocaleDateString('vi-VN')}
+                              {new Date(application.appliedDate).toLocaleDateString('vi-VN')}
                             </div>
                             <div className="flex items-center">
                               <MapPin className="h-3 w-3 mr-1" />
-                              Hà Nội
+                              {application.location}
                             </div>
                             <div className="flex items-center">
                               <DollarSign className="h-3 w-3 mr-1" />
-                              5 năm kinh nghiệm
+                              {application.jobPosition}
                             </div>
                           </div>
                         </div>
@@ -266,17 +277,17 @@ export default function EmployerDashboardPage() {
                         </div>
                       </div>
                       <div className="mt-3 flex space-x-2">
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleViewCV(application)}>
                           <Eye className="h-3 w-3 mr-1" />
                           Xem CV
                         </Button>
                         {application.status === "PENDING" && (
                           <>
-                            <Button size="sm">
+                            <Button size="sm" onClick={() => handleApprove(application.id)} disabled={!!actioning[application.id]}>
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Chấp nhận
                             </Button>
-                            <Button size="sm" variant="destructive">
+                            <Button size="sm" variant="destructive" onClick={() => handleReject(application.id)} disabled={!!actioning[application.id]}>
                               <XCircle className="h-3 w-3 mr-1" />
                               Từ chối
                             </Button>
@@ -314,6 +325,12 @@ export default function EmployerDashboardPage() {
                   <Button variant="outline" className="w-full justify-start">
                     <Users className="h-4 w-4 mr-2" />
                     Quản lý Ứng viên
+                  </Button>
+                </Link>
+                <Link href="/employer/statistics" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Thống kê tuyển dụng
                   </Button>
                 </Link>
               </CardContent>

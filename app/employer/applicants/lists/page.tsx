@@ -25,10 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { api, type SavedApplicantList } from "@/lib/api"
 
 export default function ApplicantListsPage() {
   const router = useRouter()
-  const [lists, setLists] = useState<any[]>([])
+  const [lists, setLists] = useState<SavedApplicantList[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -49,29 +50,8 @@ export default function ApplicantListsPage() {
         throw new Error("Không tìm thấy thông tin employer")
       }
 
-      // TODO: Implement API call to get lists
-      // const response = await api.getApplicantLists(employerId)
-      // setLists(response.data)
-
-      // Mock data for now
-      setLists([
-        {
-          id: "LIST001",
-          listName: "Java Developers",
-          description: "Ứng viên có kinh nghiệm Java và Spring Boot",
-          applicantCount: 5,
-          createdDate: "2024-01-15",
-          isDefault: true
-        },
-        {
-          id: "LIST002", 
-          listName: "Senior Candidates",
-          description: "Ứng viên senior với kinh nghiệm 5+ năm",
-          applicantCount: 3,
-          createdDate: "2024-01-10",
-          isDefault: false
-        }
-      ])
+      const response = await api.getApplicantListsByEmployer(employerId)
+      setLists(response.data || [])
     } catch (e: any) {
       setError(e?.message || "Không thể tải danh sách")
     } finally {
@@ -85,8 +65,7 @@ export default function ApplicantListsPage() {
     }
 
     try {
-      // TODO: Implement API call to delete list
-      // await api.deleteApplicantList(listId)
+      await api.deleteApplicantList(listId)
       
       setLists(lists.filter(list => list.id !== listId))
     } catch (e: any) {

@@ -410,6 +410,25 @@ export interface ApplicantSearchResponse {
   totalElements: number
 }
 
+// Saved Applicants / Lists
+export interface SavedApplicantList {
+  id: string
+  listName: string
+  description?: string
+  isDefault: boolean
+  applicantCount?: number
+  createdDate?: string
+}
+
+export interface SavedApplicant {
+  id: string
+  listId: string
+  applicantId: string
+  isContacted: boolean
+  notes?: string
+  createdDate?: string
+}
+
 export interface Application {
   id: string
   applicantId: string
@@ -989,4 +1008,47 @@ export const api = {
 
     return fetchApi<ApiResponse<ApplicantSearchResponse>>(`/search/applicants/keywords?${queryParams.toString()}`)
   },
+
+  // Saved Applicant Lists
+  createApplicantList: (data: { employerId: string; listName: string; description?: string }) =>
+    fetchApi<ApiResponse<SavedApplicantList>>("/saved-applicant-list/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getApplicantListsByEmployer: (employerId: string) =>
+    fetchApi<ApiResponse<SavedApplicantList[]>>(`/saved-applicant-list/employer/${employerId}`),
+
+  getApplicantListById: (listId: string) =>
+    fetchApi<ApiResponse<SavedApplicantList>>(`/saved-applicant-list/${listId}`),
+
+  deleteApplicantList: (listId: string) =>
+    fetchApi<ApiResponse<any>>(`/saved-applicant-list/${listId}`, { method: "DELETE" }),
+
+  // Saved Applicants
+  saveApplicantToList: (data: { listId: string; applicantId: string; notes?: string }) =>
+    fetchApi<ApiResponse<any>>("/saved-applicant/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getApplicantsInList: (listId: string, page = 0, size = 20) =>
+    fetchApi<ApiResponse<any>>(`/saved-applicant/list/${listId}?page=${page}&size=${size}`),
+
+  removeApplicantFromList: (savedApplicantId: string) =>
+    fetchApi<ApiResponse<any>>(`/saved-applicant/${savedApplicantId}`, { method: "DELETE" }),
+
+  isApplicantSavedInList: (listId: string, applicantId: string) =>
+    fetchApi<ApiResponse<boolean>>(`/saved-applicant/check?listId=${listId}&applicantId=${applicantId}`),
+
+  updateSavedApplicantContactStatus: (savedApplicantId: string, isContacted: boolean) =>
+    fetchApi<ApiResponse<any>>(`/saved-applicant/${savedApplicantId}/contact-status?isContacted=${isContacted}`, {
+      method: "PUT",
+    }),
+
+  getAllSavedApplicantsByEmployer: (employerId: string, page = 0, size = 10) =>
+    fetchApi<ApiResponse<any>>(`/saved-applicant/employer/${employerId}?page=${page}&size=${size}`),
+
+  getApplicantsByListAndContactStatus: (listId: string, isContacted: boolean, page = 0, size = 10) =>
+    fetchApi<ApiResponse<any>>(`/saved-applicant/list/${listId}/contact-status?isContacted=${isContacted}&page=${page}&size=${size}`),
 }
