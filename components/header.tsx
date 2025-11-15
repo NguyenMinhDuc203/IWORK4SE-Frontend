@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import Image from "next/image"
+import { api } from "@/lib/api"
 import {
   Search,
   User,
@@ -32,9 +33,36 @@ export function Header() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const [isJobSeeking, setIsJobSeeking] = useState(true)
   const [userName, setUserName] = useState("User")
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned, setIsPinned] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  
+  const loadUserAvatar = async () => {
+    try {
+      const userId = localStorage.getItem("userId")
+      const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
+      
+      if (!userId || !userTypeFromStorage) return
+      
+      if (userTypeFromStorage === "EMPLOYER") {
+        const response = await api.getEmployerById(userId)
+        if (response.data && (response.data as any).logoUrl) {
+          setAvatarUrl((response.data as any).logoUrl)
+        }
+      } else if (userTypeFromStorage === "APPLICANT") {
+        const response = await api.getApplicantById(userId)
+        // Applicant có thể có avatarUrl hoặc profilePicture trong tương lai
+        if (response.data && (response.data as any).avatarUrl) {
+          setAvatarUrl((response.data as any).avatarUrl)
+        }
+      }
+      // ADMIN không có avatar riêng
+    } catch (error) {
+      console.error("Error loading avatar:", error)
+    }
+  }
+  
   const checkAuthState = () => {
     const token = localStorage.getItem("token")
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
@@ -64,6 +92,13 @@ export function Header() {
 //       window.removeEventListener("storage", handleStorage)
 
     if (fullName) setUserName(fullName)
+    
+    // Load avatar if logged in (not for ADMIN)
+    if (token && userTypeFromStorage && userTypeFromStorage !== "ADMIN") {
+      loadUserAvatar()
+    } else {
+      setAvatarUrl(null)
+    }
   }
 
   useEffect(() => {
@@ -128,6 +163,7 @@ export function Header() {
     localStorage.removeItem("isAdmin")
     setIsLoggedIn(false)
     setUserType(null)
+    setAvatarUrl(null)
     window.dispatchEvent(new Event("auth:changed"))
     window.location.href = "/"
   }
@@ -240,9 +276,20 @@ export function Header() {
 
                     className="flex items-center gap-2 hover:text-current"
                   >
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
+                    {avatarUrl ? (
+                      <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                        <img
+                          src={avatarUrl}
+                          alt={userName}
+                          className="h-full w-full object-cover"
+                          onError={() => setAvatarUrl(null)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                    )}
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">{userName}</span>
                       {userType === "APPLICANT" && <span className="text-xs text-primary">Đang tìm việc</span>}
@@ -256,9 +303,20 @@ export function Header() {
                       <div className="p-4">
                         {/* User info header */}
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-6 w-6 text-primary" />
-                          </div>
+                          {avatarUrl ? (
+                            <div className="h-12 w-12 rounded-full overflow-hidden flex-shrink-0">
+                              <img
+                                src={avatarUrl}
+                                alt={userName}
+                                className="h-full w-full object-cover"
+                                onError={() => setAvatarUrl(null)}
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <User className="h-6 w-6 text-primary" />
+                            </div>
+                          )}
                           <div className="flex-1">
                             <h3 className="font-medium">{userName}</h3>
                             {userType === "APPLICANT" && (

@@ -18,8 +18,6 @@ import {
   MapPin,
   Download,
   Activity,
-  Target,
-  Clock,
   Award,
   PieChart
 } from "lucide-react"
@@ -30,7 +28,9 @@ import * as XLSX from "xlsx"
 interface StatisticsData {
   totalJobs: number
   totalCompanies: number
+  activeCompanies: number
   totalApplicants: number
+  activeApplicants: number
   totalApplications: number
   jobsByStatus: { [key: string]: number }
   jobsByType: { [key: string]: number }
@@ -41,8 +41,6 @@ interface StatisticsData {
   salaryDistribution: Array<{ range: string; count: number }>
   topEmployers: Array<{ name: string; jobs: number; applications: number }>
   topJobs: Array<{ title: string; applications: number; company: string }>
-  conversionRate: number
-  averageResponseTime: number
   activeUsers: number
   newUsersThisMonth: number
 }
@@ -53,7 +51,9 @@ export default function AdminStatisticsPage() {
   const [stats, setStats] = useState<StatisticsData>({
     totalJobs: 0,
     totalCompanies: 0,
+    activeCompanies: 0,
     totalApplicants: 0,
+    activeApplicants: 0,
     totalApplications: 0,
     jobsByStatus: {},
     jobsByType: {},
@@ -64,8 +64,6 @@ export default function AdminStatisticsPage() {
     salaryDistribution: [],
     topEmployers: [],
     topJobs: [],
-    conversionRate: 0,
-    averageResponseTime: 0,
     activeUsers: 0,
     newUsersThisMonth: 0
   })
@@ -446,29 +444,24 @@ export default function AdminStatisticsPage() {
         .sort((a: any, b: any) => b.applications - a.applications)
         .slice(0, 10) as any[]
 
-      // Conversion rate (approved applications / total applications)
-      const totalApps = filteredApplications.length
-      const approvedApps = filteredApplications.filter((app: any) => app.status === "APPROVED").length
-      const conversionRate = totalApps > 0 ? (approvedApps / totalApps) * 100 : 0
+      // Count active companies (ACTIVE status)
+      const activeCompanies = allCompanies.filter((company: any) => {
+        const status = company.userStatus || company.status
+        return status === "ACTIVE"
+      }).length
 
-      // Calculate average response time (days between application and status update)
-      const responseTimes = filteredApplications
-        .filter((app: any) => app.status !== "PENDING" && app.updateAt)
-        .map((app: any) => {
-          const applied = new Date(app.appliedDate || app.createdAt).getTime()
-          const updated = new Date(app.updateAt).getTime()
-          return (updated - applied) / (1000 * 60 * 60 * 24) // days
-        })
-      const averageResponseTime = responseTimes.length > 0
-        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-        : 0
+      // Count active applicants (ACTIVE status)
+      const activeApplicants = allApplicants.filter((applicant: any) => {
+        const status = applicant.userStatus || applicant.status
+        return status === "ACTIVE"
+      }).length
 
       // Active users (users who have activity in last 30 days)
       // This includes both applicants and employers who have updated their profile or applied/posted jobs
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
       
       // Active applicants (updated profile or applied in last 30 days)
-      const activeApplicants = allApplicants.filter((app: any) => {
+      const activeApplicantsRecent = allApplicants.filter((app: any) => {
         if (!app) return false
         const updated = app.updatedAt ? new Date(app.updatedAt) : null
         const created = app.createdAt ? new Date(app.createdAt) : null
@@ -482,7 +475,7 @@ export default function AdminStatisticsPage() {
       }).length
 
       // Active employers (updated profile or posted jobs in last 30 days)
-      const activeEmployers = allCompanies.filter((emp: any) => {
+      const activeEmployersRecent = allCompanies.filter((emp: any) => {
         if (!emp) return false
         const updated = emp.updatedAt ? new Date(emp.updatedAt) : null
         const created = emp.createdAt ? new Date(emp.createdAt) : null
@@ -495,8 +488,8 @@ export default function AdminStatisticsPage() {
         return false
       }).length
 
-      // Total active users = active applicants + active employers
-      const totalActiveUsers = activeApplicants + activeEmployers
+      // Total active users = active applicants + active employers (recent activity)
+      const totalActiveUsers = activeApplicantsRecent + activeEmployersRecent
 
       // New users this month (both applicants and employers)
       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -523,13 +516,15 @@ export default function AdminStatisticsPage() {
 
       const newUsersThisMonth = newApplicantsThisMonth + newEmployersThisMonth
       
-      console.log(`[Statistics] Active users: ${totalActiveUsers} (${activeApplicants} applicants + ${activeEmployers} employers)`)
+      console.log(`[Statistics] Active users: ${totalActiveUsers} (${activeApplicantsRecent} applicants + ${activeEmployersRecent} employers)`)
       console.log(`[Statistics] New users this month: ${newUsersThisMonth} (${newApplicantsThisMonth} applicants + ${newEmployersThisMonth} employers)`)
 
       setStats({
         totalJobs: filteredJobs.length,
         totalCompanies: allCompanies.length,
+        activeCompanies,
         totalApplicants: allApplicants.length,
+        activeApplicants,
         totalApplications: filteredApplications.length,
         jobsByStatus,
         jobsByType,
@@ -540,8 +535,6 @@ export default function AdminStatisticsPage() {
         salaryDistribution,
         topEmployers,
         topJobs,
-        conversionRate,
-        averageResponseTime,
         activeUsers: totalActiveUsers,
         newUsersThisMonth
       })
@@ -560,11 +553,9 @@ export default function AdminStatisticsPage() {
       ["THỐNG KÊ TỔNG QUAN"],
       ["Chỉ số", "Giá trị"],
       ["Tổng việc làm", stats.totalJobs],
-      ["Tổng công ty", stats.totalCompanies],
-      ["Tổng ứng viên", stats.totalApplicants],
+      ["Công ty (Active / Tổng)", `${stats.activeCompanies} / ${stats.totalCompanies}`],
+      ["Ứng viên (Active / Tổng)", `${stats.activeApplicants} / ${stats.totalApplicants}`],
       ["Tổng ứng tuyển", stats.totalApplications],
-      ["Tỷ lệ chuyển đổi (%)", stats.conversionRate.toFixed(2)],
-      ["Thời gian phản hồi trung bình (ngày)", stats.averageResponseTime.toFixed(1)],
       ["Người dùng hoạt động (30 ngày)", stats.activeUsers],
       ["Người dùng mới (tháng này)", stats.newUsersThisMonth],
     ]
@@ -790,8 +781,11 @@ export default function AdminStatisticsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Tổng công ty</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalCompanies}</p>
+                <p className="text-sm font-medium text-gray-600">Công ty</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {stats.activeCompanies} / {stats.totalCompanies}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Active / Tổng</p>
               </div>
               <div className="p-3 bg-green-100 rounded-lg">
                 <Building2 className="h-6 w-6 text-green-600" />
@@ -804,9 +798,11 @@ export default function AdminStatisticsPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Tổng ứng viên</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalApplicants}</p>
-                <p className="text-xs text-gray-500 mt-1">{stats.newUsersThisMonth} mới (tháng này)</p>
+                <p className="text-sm font-medium text-gray-600">Ứng viên</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {stats.activeApplicants} / {stats.totalApplicants}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Active / Tổng</p>
               </div>
               <div className="p-3 bg-purple-100 rounded-lg">
                 <Users className="h-6 w-6 text-purple-600" />
@@ -831,45 +827,7 @@ export default function AdminStatisticsPage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">Tỷ lệ chuyển đổi</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.conversionRate.toFixed(1)}%</p>
-                <p className="text-xs text-gray-500 mt-1">Ứng tuyển được chấp nhận</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg flex-shrink-0">
-                <Target className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-              <p>Số ứng tuyển được APPROVED / Tổng số ứng tuyển × 100%</p>
-              <p className="mt-1">Đây là chỉ số tổng quan của hệ thống, không phụ thuộc vai trò</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">Thời gian phản hồi TB</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.averageResponseTime.toFixed(1)} ngày</p>
-                <p className="text-xs text-gray-500 mt-1">Từ khi ứng tuyển đến khi phản hồi</p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-lg flex-shrink-0">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-            </div>
-            <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-              <p>Trung bình thời gian nhà tuyển dụng phản hồi ứng viên</p>
-              <p className="mt-1">Tính từ ngày ứng viên ứng tuyển đến ngày nhà tuyển dụng cập nhật trạng thái</p>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
