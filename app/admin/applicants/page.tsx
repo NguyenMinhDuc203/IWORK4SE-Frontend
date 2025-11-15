@@ -109,13 +109,13 @@ export default function AdminApplicantsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return <Badge variant="default" className="bg-green-100 text-green-800">Hoạt động</Badge>
+        return <Badge variant="default" className="bg-green-500 text-white hover:bg-green-600">Hoạt động</Badge>
       case "INACTIVE":
-        return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Không hoạt động</Badge>
+        return <Badge variant="secondary" className="bg-yellow-500 text-white hover:bg-yellow-600">Không hoạt động</Badge>
       case "BANNED":
-        return <Badge variant="destructive">Bị cấm</Badge>
+        return <Badge variant="outline" className="bg-black text-white hover:bg-gray-800 border-black">Bị cấm</Badge>
       case "DELETED":
-        return <Badge variant="outline" className="bg-red-100 text-red-800">Đã xóa</Badge>
+        return <Badge variant="destructive" className="bg-red-500 text-white hover:bg-red-600">Đã xóa</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -265,7 +265,7 @@ export default function AdminApplicantsPage() {
                   </div>
 
                   <div className="flex flex-col items-end gap-3 ml-4">
-                    {getStatusBadge(applicant.status || "ACTIVE")}
+                    {getStatusBadge(applicant.userStatus || applicant.status || "ACTIVE")}
                     
                     <div className="flex gap-2">
                       {/* TODO: Implement statistics later */}
