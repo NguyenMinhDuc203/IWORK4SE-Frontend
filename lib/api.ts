@@ -1051,4 +1051,106 @@ export const api = {
 
   getApplicantsByListAndContactStatus: (listId: string, isContacted: boolean, page = 0, size = 10) =>
     fetchApi<ApiResponse<any>>(`/saved-applicant/list/${listId}/contact-status?isContacted=${isContacted}&page=${page}&size=${size}`),
+
+  // Message/Chat APIs
+  sendMessage: (data: { receiverId: string; content: string }) =>
+    fetchApi<ApiResponse<any>>("/messages/send", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  sendImageMessage: (receiverId: string, file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("receiverId", receiverId)
+    return fetchApi<ApiResponse<any>>("/messages/send-image", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  getConversationMessages: (conversationId: number, page = 0, size = 20) => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    })
+    // Backend returns Page<MessageResponse> directly, not wrapped in ApiResponse
+    return fetchApi<any>(`/messages/conversation/${conversationId}?${queryParams.toString()}`)
+  },
+
+  getUserConversations: (page = 0, size = 10) => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    })
+    return fetchApi<ApiResponse<any>>(`/messages/conversations?${queryParams.toString()}`)
+  },
+
+  getActiveConversations: () =>
+    fetchApi<any[]>("/messages/conversations/active"),
+
+  markMessagesAsRead: async (conversationId: number) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/messages/conversation/${conversationId}/mark-as-read`, {
+      method: "PUT",
+      headers,
+    })
+    
+    // 204 No Content - no body to parse
+    if (response.status === 204 || response.status === 200) {
+      return null
+    }
+    
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Failed to mark messages as read")
+      throw new ApiError(response.status, errorText)
+    }
+    
+    return null
+  },
+
+  getUnreadMessageCount: () =>
+    fetchApi<ApiResponse<number>>("/messages/unread-count"),
+
+  deleteMessage: (messageId: number) =>
+    fetchApi<ApiResponse<any>>(`/messages/${messageId}`, {
+      method: "DELETE",
+    }),
+
+  getAdminAndEmployerUsers: (keyword?: string) => {
+    const queryParams = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""
+    return fetchApi<any[]>(`/messages/users/admin-employer${queryParams}`)
+  },
+}
+
+// Message types
+export interface MessageResponse {
+  id: number
+  conversationId: number
+  senderId: string
+  senderName: string
+  receiverId: string
+  content?: string
+  imageUrl?: string
+  messageType: "TEXT" | "IMAGE"
+  sentAt: string
+  isRead: boolean
+}
+
+export interface ConversationResponse {
+  id: number
+  user1Id: string
+  user1Name: string
+  user2Id: string
+  user2Name: string
+  lastMessageTime: string
+  unreadCount: number
+  isActive: boolean
 }

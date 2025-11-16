@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { SavedJobsProvider } from "@/context/saved-jobs-context"
+import ChatWidgetWrapper from "@/components/chat-widget-wrapper"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />
+              <ChatWidgetWrapper />
             </div>
           </SavedJobsProvider>
         </ThemeProvider>
