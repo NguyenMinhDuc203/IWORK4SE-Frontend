@@ -101,7 +101,9 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   const controller = new AbortController()
   // Increase timeout for specific endpoints that might take longer
   let timeoutDuration = 10000 // Default 10 seconds
-  if (endpoint.includes('/job-category/')) {
+  if (endpoint.includes('/api/ai-chat/')) {
+    timeoutDuration = 30000 // 30 seconds for AI chat (Gemini API can be slow)
+  } else if (endpoint.includes('/job-category/')) {
     timeoutDuration = 30000 // 30 seconds for job categories
   } else if (endpoint.includes('/job-post/') && options.method === 'POST') {
     timeoutDuration = 45000 // 45 seconds for creating job posts
@@ -220,7 +222,9 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
     if (error instanceof Error) {
       if (error.name === "AbortError") {
         let timeoutMsg = "Request timeout - Server không phản hồi"
-        if (endpoint.includes('/job-category/')) {
+        if (endpoint.includes('/api/ai-chat/')) {
+          timeoutMsg = "Request timeout (30s) - AI đang xử lý, vui lòng thử lại sau."
+        } else if (endpoint.includes('/job-category/')) {
           timeoutMsg = "Request timeout (30s) - Server không phản hồi. Vui lòng thử lại sau."
         } else if (endpoint.includes('/job-post/') && options.method === 'POST') {
           timeoutMsg = "Request timeout (45s) - Tạo tin tuyển dụng mất quá nhiều thời gian. Vui lòng kiểm tra lại."
@@ -298,6 +302,61 @@ export interface JobPostPageResponse {
   pageSize: number
   totalPages: number
   totalElements: number
+}
+
+export interface PageMeta {
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+  totalElements: number
+}
+
+export interface PageResponse<T> extends PageMeta {
+  content: T[]
+}
+
+export const normalizePageResponse = <T,>(payload: any): PageResponse<T> => {
+  const fallback: PageResponse<T> = {
+    content: [],
+    pageNumber: 0,
+    pageSize: 0,
+    totalPages: 0,
+    totalElements: 0,
+  }
+
+  if (!payload) {
+    return fallback
+  }
+
+  const data = (payload as any)?.data ?? payload
+
+  if (Array.isArray(data?.content)) {
+    return {
+      content: data.content,
+      pageNumber: data.pageNumber ?? data.page ?? 0,
+      pageSize: data.pageSize ?? data.size ?? data.content.length ?? 0,
+      totalPages: data.totalPages ?? data.totalPage ?? 1,
+      totalElements: data.totalElements ?? data.total ?? data.content.length ?? 0,
+    }
+  }
+
+  if (Array.isArray(data)) {
+    return {
+      content: data,
+      pageNumber: 0,
+      pageSize: data.length,
+      totalPages: 1,
+      totalElements: data.length,
+    }
+  }
+
+  return {
+    content: [],
+    pageNumber: data?.pageNumber ?? data?.page ?? 0,
+    pageSize: data?.pageSize ?? data?.size ?? 0,
+    totalPages: data?.totalPages ?? data?.totalPage ?? 0,
+    totalElements: data?.totalElements ?? data?.total ?? 0,
+  }
 }
 
 export interface CV {
@@ -661,18 +720,45 @@ export const api = {
   getApplicationById: (id: string) => fetchApi<ApiResponse<Application>>(`/application/${id}`),
 
   getApplicationsByApplicant: (applicantId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<any>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`, {
+    fetchApi<ApiResponse<PageResponse<Application>>>(`/application/applicant/${applicantId}?page=${page}&size=${size}`, {
       method: "GET",
     }),
 
   getApplicationsByJob: (jobId: string, page = 0, size = 10) =>
     fetchApi<ApiResponse<Application[]>>(`/application/job/${jobId}?page=${page}&size=${size}`),
 
-  getApplicationsByEmployer: (employerId: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<Application[]>>(`/application/employer/${employerId}?page=${page}&size=${size}`),
+  getApplicationsByEmployer: (
+    employerId: string,
+    pageOrOptions?: number | { page?: number; size?: number; status?: Application["status"] },
+    size?: number,
+  ) => {
+    let page = 0
+    let pageSize = 10
+    let status: Application["status"] | undefined
+
+    if (typeof pageOrOptions === "object") {
+      page = pageOrOptions.page ?? 0
+      pageSize = pageOrOptions.size ?? 10
+      status = pageOrOptions.status
+    } else {
+      page = pageOrOptions ?? 0
+      pageSize = size ?? 10
+    }
+
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: pageSize.toString(),
+    })
+
+    if (status) {
+      queryParams.append("status", status)
+    }
+
+    return fetchApi<ApiResponse<PageResponse<Application>>>(`/application/employer/${employerId}?${queryParams.toString()}`)
+  },
 
   getApplicationsByStatus: (status: string, page = 0, size = 10) =>
-    fetchApi<ApiResponse<Application[]>>(`/application/status/${status}?page=${page}&size=${size}`),
+    fetchApi<ApiResponse<PageResponse<Application>>>(`/application/status/${status}?page=${page}&size=${size}`),
 
   updateApplicationStatus: (id: string, status: string) =>
     fetchApi<ApiResponse<any>>(`/application/${id}/status?status=${status}`, {
@@ -1128,6 +1214,47 @@ export const api = {
     const queryParams = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""
     return fetchApi<any[]>(`/messages/users/admin-employer${queryParams}`)
   },
+
+  // AI Chat APIs
+  sendAIMessage: (message: string, conversationHistory?: string) =>
+    fetchApi<AIChatResponse | ApiResponse<AIChatResponse>>("/api/ai-chat/send", {
+      method: "POST",
+      body: JSON.stringify({ message, conversationHistory }),
+    }),
+
+  // Notification APIs
+  getNotifications: (page = 0, size = 20) => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    })
+    return fetchApi<ApiResponse<NotificationPageResponse>>(`/notification/search?${queryParams.toString()}`)
+  },
+
+  getNotificationsByUser: (userId: string, page = 0, size = 20) => {
+    const queryParams = new URLSearchParams({
+      page: page.toString(),
+      size: size.toString(),
+    })
+    return fetchApi<ApiResponse<NotificationPageResponse>>(`/notification/user/${userId}?${queryParams.toString()}`)
+  },
+
+  getNotificationById: (id: string) =>
+    fetchApi<ApiResponse<NotificationResponse>>(`/notification/${id}`),
+
+  deleteNotification: (id: string) =>
+    fetchApi<ApiResponse<any>>(`/notification/${id}`, {
+      method: "DELETE",
+    }),
+
+  getUnreadNotificationCount: () => {
+    const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null
+    if (!userId) {
+      return Promise.resolve({ status: 200, message: "OK", data: 0 })
+    }
+    // Use total count as unread count for now (can be enhanced later with isRead field)
+    return fetchApi<ApiResponse<number>>(`/notification/user/${userId}/count`)
+  },
 }
 
 // Message types
@@ -1153,4 +1280,29 @@ export interface ConversationResponse {
   lastMessageTime: string
   unreadCount: number
   isActive: boolean
+}
+
+// AI Chat types
+export interface AIChatResponse {
+  response: string
+  conversationHistory?: string
+}
+
+// Notification types
+export interface NotificationResponse {
+  id: string
+  userId: string
+  userName: string
+  applicationId?: string
+  type: string
+  message: string
+  createdAt: string
+}
+
+export interface NotificationPageResponse {
+  content: NotificationResponse[]
+  page: number
+  size: number
+  totalPages: number
+  totalElements: number
 }

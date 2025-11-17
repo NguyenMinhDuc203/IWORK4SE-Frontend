@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { MessageCircle, X, Search, Send, Paperclip, ChevronDown } from "lucide-react"
+import { X, Search, Send, Paperclip, ChevronDown } from "lucide-react"
 import { api, ConversationResponse, MessageResponse } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,9 +32,12 @@ export default function ChatWidget() {
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [unreadCount, setUnreadCount] = useState(0)
   const [stompClient, setStompClient] = useState<Client | null>(null)
+  const [helperMessage, setHelperMessage] = useState<string>("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const helperIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null
+  const currentRole = typeof window !== "undefined" ? localStorage.getItem("role") : null
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -123,6 +126,47 @@ export default function ChatWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Show helper message for EMPLOYER every 10 seconds
+  useEffect(() => {
+    // Only show for EMPLOYER role
+    if (currentRole !== "EMPLOYER") {
+      return
+    }
+
+    // Clear any existing interval
+    if (helperIntervalRef.current) {
+      clearInterval(helperIntervalRef.current)
+      helperIntervalRef.current = null
+    }
+
+    const showHelper = () => {
+      setHelperMessage("Liên hệ với admin")
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        setHelperMessage("")
+      }, 5000)
+    }
+
+    // Show first helper message after 10 seconds
+    const firstTimeoutId = setTimeout(() => {
+      showHelper()
+    }, 10000)
+
+    // Set up interval to show helper messages every 10 seconds
+    helperIntervalRef.current = setInterval(() => {
+      showHelper()
+    }, 10000)
+
+    return () => {
+      clearTimeout(firstTimeoutId)
+      if (helperIntervalRef.current) {
+        clearInterval(helperIntervalRef.current)
+        helperIntervalRef.current = null
+      }
+    }
+  }, [currentRole])
 
   // Search users
   useEffect(() => {
@@ -357,28 +401,56 @@ export default function ChatWidget() {
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={() => setIsOpen(true)}
-          size="lg"
-          className="h-14 w-14 rounded-full bg-red-600 hover:bg-red-700 shadow-lg"
-        >
-          <MessageCircle className="h-6 w-6 text-white" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-red-500">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </div>
+      <>
+        {/* Helper Message Bubble - Outside popup for EMPLOYER */}
+        {helperMessage && currentRole === "EMPLOYER" && (
+          <div className="fixed bottom-28 right-6 z-50 animate-in slide-in-from-bottom-2 fade-in duration-300">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 md:p-4 max-w-xs relative">
+              <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+              <p className="text-sm md:text-base font-semibold md:font-bold text-gray-800 relative z-10">{helperMessage}</p>
+            </div>
+          </div>
+        )}
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            onClick={() => setIsOpen(true)}
+            size="lg"
+            className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 rounded-full bg-red-600 hover:bg-red-700 shadow-lg p-0 flex items-center justify-center"
+          >
+            <img
+              src="https://img.icons8.com/?size=100&id=tCfT4FT0oGjo&format=png&color=FFFFFF"
+              alt="Messages"
+              width={64}
+              height={64}
+              className="brightness-0 invert w-10 h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
+            />
+            {unreadCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-red-500">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col border border-gray-200">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-red-600 text-white rounded-t-lg">
-        <h3 className="font-semibold">Tin nhắn</h3>
+    <>
+      {/* Helper Message Bubble - Outside popup for EMPLOYER */}
+      {helperMessage && currentRole === "EMPLOYER" && (
+        <div className="fixed bottom-[calc(600px+1.5rem+0.5rem)] right-6 z-[60] max-w-xs">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 md:p-4 relative animate-in slide-in-from-bottom-2 fade-in duration-300">
+            {/* Arrow pointing down */}
+            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
+            <p className="text-sm md:text-base font-semibold md:font-bold text-gray-800 relative z-10">{helperMessage}</p>
+          </div>
+        </div>
+      )}
+      <div className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col border border-gray-200">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-red-600 text-white rounded-t-lg">
+          <h3 className="font-semibold">Tin nhắn</h3>
         <Button
           variant="ghost"
           size="sm"
@@ -599,6 +671,7 @@ export default function ChatWidget() {
         )
       )}
     </div>
+    </>
   )
 }
 

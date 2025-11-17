@@ -7,6 +7,7 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { SavedJobsProvider } from "@/context/saved-jobs-context"
 import ChatWidgetWrapper from "@/components/chat-widget-wrapper"
+import AIChatWidgetWrapper from "@/components/ai-chat-widget-wrapper"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
               <main className="flex-1">{children}</main>
               <Footer />
               <ChatWidgetWrapper />
+              <AIChatWidgetWrapper />
             </div>
           </SavedJobsProvider>
         </ThemeProvider>
