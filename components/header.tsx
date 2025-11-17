@@ -5,7 +5,12 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
+import { api, NotificationResponse } from "@/lib/api"
+import { Client } from "@stomp/stompjs"
+import SockJS from "sockjs-client"
 import {
   Search,
   User,
@@ -32,9 +37,43 @@ export function Header() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
   const [isJobSeeking, setIsJobSeeking] = useState(true)
   const [userName, setUserName] = useState("User")
-  const [isPinned, setIsPinned] = useState(false);
+  const [isPinned, setIsPinned] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationResponse[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
+  const [stompClient, setStompClient] = useState<Client | null>(null)
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const notificationRef = useRef<HTMLDivElement>(null)
+  const notificationsEndRef = useRef<HTMLDivElement>(null)
+  
+  const loadUserAvatar = async () => {
+    try {
+      const userId = localStorage.getItem("userId")
+      const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
+      
+      if (!userId || !userTypeFromStorage) return
+      
+      if (userTypeFromStorage === "EMPLOYER") {
+        const response = await api.getEmployerById(userId)
+        if (response.data && (response.data as any).logoUrl) {
+          setAvatarUrl((response.data as any).logoUrl)
+        }
+      } else if (userTypeFromStorage === "APPLICANT") {
+        const response = await api.getApplicantById(userId)
+        // Applicant có thể có avatarUrl hoặc profilePicture trong tương lai
+        if (response.data && (response.data as any).avatarUrl) {
+          setAvatarUrl((response.data as any).avatarUrl)
+        }
+      }
+      // ADMIN không có avatar riêng
+    } catch (error) {
+      console.error("Error loading avatar:", error)
+    }
+  }
+  
   const checkAuthState = () => {
     const token = localStorage.getItem("token")
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
@@ -64,6 +103,13 @@ export function Header() {
 //       window.removeEventListener("storage", handleStorage)
 
     if (fullName) setUserName(fullName)
+    
+    // Load avatar if logged in (not for ADMIN)
+    if (token && userTypeFromStorage && userTypeFromStorage !== "ADMIN") {
+      loadUserAvatar()
+    } else {
+      setAvatarUrl(null)
+    }
   }
 
   useEffect(() => {
@@ -89,6 +135,12 @@ export function Header() {
         setIsUserDropdownOpen(false);
         setIsPinned(false);
       }
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -96,7 +148,152 @@ export function Header() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, [dropdownRef, notificationRef]);
+
+  // Initialize WebSocket connection for realtime notifications
+  useEffect(() => {
+    const userId = localStorage.getItem("userId")
+    const role = localStorage.getItem("role")
+    if (!userId || !role) return
+
+    const socket = new SockJS(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/ws-notification`)
+    const client = new Client({
+      webSocketFactory: () => socket,
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      onConnect: () => {
+        console.log("[NOTIFICATION WEBSOCKET] Connected")
+        
+        // Determine topic based on user role
+        let topic: string
+        if (role === "APPLICANT") {
+          topic = `/topic/notifications/applicant/${userId}`
+        } else if (role === "EMPLOYER") {
+          topic = `/topic/notifications/employer/${userId}`
+        } else if (role === "ADMIN") {
+          topic = `/topic/notifications/admin/${userId}`
+        } else {
+          topic = `/topic/notifications/user/${userId}`
+        }
+
+        // Subscribe to notification topic
+        const subscription = client.subscribe(topic, (message) => {
+          try {
+            const notification: NotificationResponse = JSON.parse(message.body)
+            console.log("[NOTIFICATION WEBSOCKET] Received new notification:", notification)
+            
+            // Add notification to the list
+            setNotifications((prev) => {
+              const exists = prev.some(n => n.id === notification.id)
+              if (exists) {
+                return prev
+              }
+              return [notification, ...prev]
+            })
+            
+            // Update unread count
+            setUnreadCount((prev) => prev + 1)
+          } catch (error) {
+            console.error("[NOTIFICATION WEBSOCKET] Error parsing notification:", error)
+          }
+        })
+        
+        return subscription
+      },
+      onStompError: (frame) => {
+        console.error("[NOTIFICATION WEBSOCKET] STOMP error:", frame)
+      },
+    })
+
+    client.activate()
+    setStompClient(client)
+
+    return () => {
+      client.deactivate()
+    }
+  }, [])
+
+  // Load notifications and unread count
+  useEffect(() => {
+    const userId = localStorage.getItem("userId")
+    if (userId) {
+      loadNotifications()
+      loadUnreadCount()
+    }
+  }, [isLoggedIn])
+
+  // Scroll to top when notifications change
+  useEffect(() => {
+    if (isNotificationOpen && notificationsEndRef.current) {
+      notificationsEndRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [notifications, isNotificationOpen])
+
+  const loadNotifications = async () => {
+    const userId = localStorage.getItem("userId")
+    if (!userId) return
+    try {
+      setIsLoadingNotifications(true)
+      const response = await api.getNotificationsByUser(userId, 0, 50)
+      if (response.data?.content) {
+        setNotifications(response.data.content)
+      }
+    } catch (error) {
+      console.error("Failed to load notifications:", error)
+    } finally {
+      setIsLoadingNotifications(false)
+    }
+  }
+
+  const loadUnreadCount = async () => {
+    try {
+      const response = await api.getUnreadNotificationCount()
+      if (response.data !== undefined) {
+        setUnreadCount(response.data)
+      }
+    } catch (error) {
+      console.error("Failed to load unread count:", error)
+    }
+  }
+
+  const deleteNotification = async (id: string) => {
+    try {
+      await api.deleteNotification(id)
+      setNotifications((prev) => prev.filter((n) => n.id !== id))
+      loadUnreadCount()
+    } catch (error) {
+      console.error("Failed to delete notification:", error)
+    }
+  }
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return "Vừa xong"
+    if (minutes < 60) return `${minutes} phút trước`
+    if (hours < 24) return `${hours} giờ trước`
+    if (days < 7) return `${days} ngày trước`
+    return date.toLocaleDateString("vi-VN")
+  }
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "APPLICATION_STATUS":
+        return "📋"
+      case "JOB_MATCH":
+        return "💼"
+      case "SYSTEM":
+        return "🔔"
+      default:
+        return "📢"
+    }
+  }
 
   const handleClick = () => {
 
@@ -128,6 +325,7 @@ export function Header() {
     localStorage.removeItem("isAdmin")
     setIsLoggedIn(false)
     setUserType(null)
+    setAvatarUrl(null)
     window.dispatchEvent(new Event("auth:changed"))
     window.location.href = "/"
   }
@@ -226,9 +424,111 @@ export function Header() {
                   </>
                 )}
 
-                <Button variant="ghost" size="sm">
-                  <Bell className="h-4 w-4" />
-                </Button>
+                <div className="relative" ref={notificationRef}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                    className="relative"
+                  >
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+
+                  {isNotificationOpen && (
+                    <div className="absolute right-0 mt-2 w-96 h-[600px] bg-background border rounded-lg shadow-lg flex flex-col z-50">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-4 border-b bg-blue-600 text-white rounded-t-lg">
+                        <div className="flex items-center gap-2">
+                          <Bell className="h-5 w-5" />
+                          <h3 className="font-semibold">Thông báo</h3>
+                          {unreadCount > 0 && (
+                            <Badge className="bg-red-500 ml-2">
+                              {unreadCount > 9 ? "9+" : unreadCount}
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsNotificationOpen(false)}
+                          className="text-white hover:bg-blue-700"
+                        >
+                          <X className="h-5 w-5" />
+                        </Button>
+                      </div>
+
+                      {/* Notifications List */}
+                      <ScrollArea className="flex-1 p-4">
+                        {isLoadingNotifications ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-gray-500">Đang tải...</div>
+                          </div>
+                        ) : notifications.length === 0 ? (
+                          <div className="flex items-center justify-center h-full">
+                            <div className="text-center text-gray-500">
+                              <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                              <p>Không có thông báo</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {notifications.map((notification) => (
+                              <div
+                                key={notification.id}
+                                className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="text-2xl flex-shrink-0">
+                                    {getNotificationIcon(notification.type)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900 mb-1">
+                                          {notification.message}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                          {formatTime(notification.createdAt)}
+                                        </p>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => deleteNotification(notification.id)}
+                                        className="h-6 w-6 p-0 text-gray-400 hover:text-red-500"
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            <div ref={notificationsEndRef} />
+                          </div>
+                        )}
+                      </ScrollArea>
+
+                      {/* Footer */}
+                      <div className="p-3 border-t bg-gray-50 rounded-b-lg">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadNotifications}
+                          className="w-full"
+                          disabled={isLoadingNotifications}
+                        >
+                          {isLoadingNotifications ? "Đang tải..." : "Tải lại"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="relative pb-2" ref={dropdownRef}
                   onMouseEnter={handleMouseEnter}
@@ -240,9 +540,20 @@ export function Header() {
 
                     className="flex items-center gap-2 hover:text-current"
                   >
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
+                    {avatarUrl ? (
+                      <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                        <img
+                          src={avatarUrl}
+                          alt={userName}
+                          className="h-full w-full object-cover"
+                          onError={() => setAvatarUrl(null)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-primary" />
+                      </div>
+                    )}
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">{userName}</span>
                       {userType === "APPLICANT" && <span className="text-xs text-primary">Đang tìm việc</span>}
@@ -256,9 +567,20 @@ export function Header() {
                       <div className="p-4">
                         {/* User info header */}
                         <div className="flex items-center gap-3 mb-4">
-                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-6 w-6 text-primary" />
-                          </div>
+                          {avatarUrl ? (
+                            <div className="h-12 w-12 rounded-full overflow-hidden flex-shrink-0">
+                              <img
+                                src={avatarUrl}
+                                alt={userName}
+                                className="h-full w-full object-cover"
+                                onError={() => setAvatarUrl(null)}
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                              <User className="h-6 w-6 text-primary" />
+                            </div>
+                          )}
                           <div className="flex-1">
                             <h3 className="font-medium">{userName}</h3>
                             {userType === "APPLICANT" && (

@@ -23,7 +23,7 @@ import {
   Loader2,
   Flag,
 } from "lucide-react"
-import { api, JobPost ,type JobPost} from "@/lib/api"
+import { api, type JobPost } from "@/lib/api"
 // import ApiTestComponent from "@/components/api-test" // Removed
 import ClientOnly from "@/components/client-only"
 import { useSavedJobs } from "@/context/saved-jobs-context"
@@ -33,6 +33,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchKeyword, setSearchKeyword] = useState("")
   const [searchLocation, setSearchLocation] = useState("")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const savedJobsContext = useSavedJobs()
 
@@ -40,6 +41,8 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchFeaturedJobs()
+    const token = localStorage.getItem("token")
+    setIsAuthenticated(!!token)
   }, [])
 
   const fetchFeaturedJobs = async () => {
@@ -429,26 +432,28 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Sẵn sàng tìm việc làm mơ ước?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
-            Tham gia ngay để khám phá hàng nghìn cơ hội việc làm IT hấp dẫn
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/register">
-              <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Đăng ký ngay
-              </Button>
-            </Link>
-            <Link href="/jobs">
-              <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
-                Khám phá việc làm
-              </Button>
-            </Link>
+      {!isAuthenticated && (
+        <section className="py-16 bg-primary text-primary-foreground">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-4">Sẵn sàng tìm việc làm mơ ước?</h2>
+            <p className="text-xl mb-8 max-w-2xl mx-auto opacity-90">
+              Tham gia ngay để khám phá hàng nghìn cơ hội việc làm IT hấp dẫn
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/register">
+                <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
+                  Đăng ký ngay
+                </Button>
+              </Link>
+              <Link href="/jobs">
+                <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
+                  Khám phá việc làm
+                </Button>
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   )
 }

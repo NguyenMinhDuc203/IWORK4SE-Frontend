@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Plus, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { api } from "@/lib/api"
 
 export default function CreateApplicantListPage() {
   const router = useRouter()
@@ -38,15 +39,11 @@ export default function CreateApplicantListPage() {
         throw new Error("Không tìm thấy thông tin employer")
       }
 
-      // TODO: Implement API call to create list
-      // const response = await api.createApplicantList({
-      //   employerId,
-      //   listName: form.listName,
-      //   description: form.description
-      // })
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await api.createApplicantList({
+        employerId,
+        listName: form.listName,
+        description: form.description || undefined,
+      })
       
       // Redirect to lists page
       router.push("/employer/applicants/lists")
