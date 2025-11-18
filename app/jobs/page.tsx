@@ -4,12 +4,13 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MapPin, Briefcase, DollarSign, Building2, Filter, Flag, Loader2, } from "lucide-react"
-import { api, type JobPost, type JobCategory } from "@/lib/api"
+import { Search, MapPin, Briefcase, DollarSign, Building2, Filter, Flag, Loader2 } from "lucide-react"
+import { api, type JobPost } from "@/lib/api"
 import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function JobsPage() {
@@ -26,6 +27,9 @@ export default function JobsPage() {
     location: "",
     jobType: "all",
     categoryId: "all",
+    minSalary: "",
+    maxSalary: "",
+    experience: "",
     page: 0,
     size: 12,
   })
@@ -129,24 +133,6 @@ export default function JobsPage() {
     { id: 88, categoryName: "Business Analyst (BA)" },
   ]
 
-  // useEffect(() => {
-  //   fetchCategories()
-  // }, [])
-
-  // const fetchCategories = async () => {
-  //   setIsCategoriesLoading(true)
-  //   try {
-  //     const response = await api.getAllJobCategories()
-  //     if (response.data) {
-  //       setCategories(response.data)
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching categories:", error)
-  //     setCategories([])
-  //   } finally {
-  //     setIsCategoriesLoading(false)
-  //   }
-  // }
   const formatSalaryShort = (salary: number) => {
     if (salary >= 1000000) {
       const millions = salary / 1000000
@@ -167,6 +153,9 @@ export default function JobsPage() {
             ? undefined
             : (searchParams.jobType as "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"),
         categoryId: searchParams.categoryId === "all" ? undefined : Number(searchParams.categoryId),
+        minSalary: searchParams.minSalary ? Number(searchParams.minSalary) : undefined,
+        maxSalary: searchParams.maxSalary ? Number(searchParams.maxSalary) : undefined,
+        experience: searchParams.experience || undefined,
         jobStatus: "ACCEPTED" as const,
         page: searchParams.page,
         size: searchParams.size,
@@ -287,6 +276,24 @@ export default function JobsPage() {
                     className="pl-10"
                   />
                 </div>
+                <div className="flex-1 relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Lương tối thiểu (Triệu)"
+                    value={searchParams.minSalary}
+                    onChange={(e) => setSearchParams((prev) => ({ ...prev, minSalary: e.target.value }))}
+                    className="pl-10 pr-14"
+                  />
+                </div>
+                <div className="flex-1 relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Lương tối đa (Triệu)"
+                    value={searchParams.maxSalary}
+                    onChange={(e) => setSearchParams((prev) => ({ ...prev, maxSalary: e.target.value }))}
+                    className="pl-10"
+                  />
+                </div>
                 <Button type="submit" className="md:w-auto w-full">
                   <Search className="h-4 w-4 mr-2" />
                   Tìm kiếm
@@ -309,7 +316,7 @@ export default function JobsPage() {
                       value="all"
                       className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
                     >
-                      Tất cả
+                      Tất cả vị trí
                     </SelectItem>
                     <SelectItem
                       value="INTERNSHIP"
@@ -352,7 +359,12 @@ export default function JobsPage() {
                     <SelectValue placeholder="Danh mục" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả danh mục</SelectItem>
+                    <SelectItem
+                      value="all"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Tất cả danh mục
+                    </SelectItem>
 
                     {hardcodedCategories.map((category) => (
                       <SelectItem
@@ -365,6 +377,15 @@ export default function JobsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+
+
+                <Input
+                  type="text"
+                  placeholder="Số năm kinh nghiệm"
+                  value={searchParams.experience}
+                  onChange={(e) => setSearchParams((prev) => ({ ...prev, experience: e.target.value }))}
+                  className="w-[180px]"
+                />
               </div>
             </form>
           </CardContent>
@@ -400,7 +421,7 @@ export default function JobsPage() {
                 className="block group h-full"
               >
                 <Card className="h-full flex flex-col justify-between hover:shadow-lg hover:border-primary/50 transition-all duration-200">
-                  <CardHeader className="pb-3 min-h-[120px]">
+                  <CardHeader className="pb-0 min-h-[120px]">
                     <div className="flex items-start justify-between gap-3 h-full">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         {/* Logo */}
@@ -431,11 +452,10 @@ export default function JobsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => toggleSaveJob(job.id, e)}
-                        className={`flex-shrink-0 h-8 w-8 p-0 ${
-                          isSaved(job.id)
-                            ? "text-yellow-500 hover:text-yellow-600"
-                            : "text-muted-foreground hover:text-yellow-500"
-                        }`}
+                        className={`flex-shrink-0 h-8 w-8 p-0 ${isSaved(job.id)
+                          ? "text-yellow-500 hover:text-yellow-600"
+                          : "text-muted-foreground hover:text-yellow-500"
+                          }`}
                       >
                         <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                       </Button>
@@ -444,23 +464,23 @@ export default function JobsPage() {
 
                   <CardContent className="space-y-3 flex-grow">
                     <div className="flex items-center text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <Image
+                        src="/assets/placeholder.png"
+                        width={40}
+                        height={40}
+                        alt="Position"
+                        className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                      />
                       <span className="truncate">{job.location}</span>
                     </div>
                     <div className="flex items-center text-sm text-muted-foreground">
-                      <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
-                      <span className="truncate">
-                        {job.minSalary && job.maxSalary
-                          ? `${formatSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
-                          : job.minSalary
-                            ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
-                            : job.maxSalary
-                              ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
-                              : "Thỏa thuận"}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Briefcase className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <Image
+                        src="/assets/position.png"
+                        width={40}
+                        height={40}
+                        alt="Job Type"
+                        className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                      />
                       <span>
                         {job.jobType === "INTERNSHIP"
                           ? "Internship"
@@ -475,6 +495,25 @@ export default function JobsPage() {
                                   : "Không xác định"}
                       </span>
                     </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Image
+                        src="/assets/salary.png"
+                        width={40}
+                        height={40}
+                        alt="Salary"
+                        className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                      />
+                      <span className="truncate">
+                        {job.minSalary && job.maxSalary
+                          ? `${formatSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
+                          : job.minSalary
+                            ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
+                            : job.maxSalary
+                              ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
+                              : "Thỏa thuận"}
+                      </span>
+                    </div>
+                    
                   </CardContent>
                 </Card>
               </Link>
@@ -533,7 +572,17 @@ export default function JobsPage() {
             </p>
             <Button
               onClick={() =>
-                setSearchParams({ keywords: "", location: "", jobType: "all", categoryId: "all", page: 0, size: 12 })
+                setSearchParams({
+                  keywords: "",
+                  location: "",
+                  jobType: "all",
+                  categoryId: "all",
+                  minSalary: "",
+                  maxSalary: "",
+                  experience: "",
+                  page: 0,
+                  size: 12,
+                })
               }
             >
               Xóa bộ lọc

@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import RotatingText from "@/components/RotatingText"
@@ -97,6 +98,15 @@ export default function HomePage() {
 
     const queryString = params.toString()
     window.location.href = `/jobs${queryString ? `?${queryString}` : ""}`
+  }
+
+  const formatSalaryShort = (salary: number) => {
+    if (salary >= 1000000) {
+      const millions = salary / 1000000
+      return `${Number(millions.toFixed(1))} Triệu`
+    }
+
+    return salary.toLocaleString()
   }
   return (
     <div className="min-h-screen">
@@ -276,11 +286,10 @@ export default function HomePage() {
                             variant="ghost"
                             size="sm"
                             onClick={(e) => toggleSaveJob(job.id, e)}
-                            className={`flex-shrink-0 h-8 w-8 p-0 ${
-                              isSaved(job.id)
+                            className={`flex-shrink-0 h-8 w-8 p-0 ${isSaved(job.id)
                                 ? "text-yellow-500 hover:text-yellow-600"
                                 : "text-muted-foreground hover:text-yellow-500"
-                            }`}
+                              }`}
                           >
                             <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                           </Button>
@@ -289,23 +298,23 @@ export default function HomePage() {
 
                       <CardContent className="space-y-3 flex-grow">
                         <div className="flex items-center text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <Image
+                            src="/assets/placeholder.png"
+                            width={40}
+                            height={40}
+                            alt="Position"
+                            className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                          />
                           <span className="truncate">{job.location}</span>
                         </div>
                         <div className="flex items-center text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
-                          <span className="truncate">
-                            {job.minSalary && job.maxSalary
-                              ? `${job.minSalary.toLocaleString()} - ${job.maxSalary.toLocaleString()} VNĐ`
-                              : job.minSalary
-                                ? `Từ ${job.minSalary.toLocaleString()} VNĐ`
-                                : job.maxSalary
-                                  ? `Đến ${job.maxSalary.toLocaleString()} VNĐ`
-                                  : "Thỏa thuận"}
-                          </span>
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Briefcase className="h-4 w-4 mr-2 flex-shrink-0" />
+                          <Image
+                            src="/assets/position.png"
+                            width={40}
+                            height={40}
+                            alt="Job Type"
+                            className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                          />
                           <span>
                             {job.jobType === "INTERNSHIP"
                               ? "Internship"
@@ -320,6 +329,25 @@ export default function HomePage() {
                                       : "Không xác định"}
                           </span>
                         </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <Image
+                            src="/assets/salary.png"
+                            width={40}
+                            height={40}
+                            alt="Salary"
+                            className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                          />
+                          <span className="truncate">
+                            {job.minSalary && job.maxSalary
+                              ? `${formatSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
+                              : job.minSalary
+                                ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
+                                : job.maxSalary
+                                  ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
+                                  : "Thỏa thuận"}
+                          </span>
+                        </div>
+
                       </CardContent>
 
                       {/* <div className="flex items-center justify-between px-6 pb-4 mt-auto">

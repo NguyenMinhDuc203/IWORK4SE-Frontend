@@ -90,12 +90,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 py-12 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2">
-            <Briefcase className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-primary">iWork4SE</span>
-          </Link>
-        </div>
+        
 
         <Card>
           <CardHeader className="text-center">
@@ -179,8 +174,8 @@ export default function RegisterPage() {
                     <SelectValue placeholder="Chọn loại tài khoản" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="APPLICANT">Ứng viên</SelectItem>
-                    <SelectItem value="EMPLOYER">Nhà tuyển dụng</SelectItem>
+                    <SelectItem className="cursor-pointer hover:text-blue-600 focus:text-blue-600" value="APPLICANT">Ứng viên</SelectItem>
+                    <SelectItem className="cursor-pointer hover:text-blue-600 focus:text-blue-600" value="EMPLOYER">Nhà tuyển dụng</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

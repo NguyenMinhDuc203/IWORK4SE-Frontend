@@ -48,14 +48,14 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
   const notificationsEndRef = useRef<HTMLDivElement>(null)
-  
+
   const loadUserAvatar = async () => {
     try {
       const userId = localStorage.getItem("userId")
       const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
-      
+
       if (!userId || !userTypeFromStorage) return
-      
+
       if (userTypeFromStorage === "EMPLOYER") {
         const response = await api.getEmployerById(userId)
         if (response.data && (response.data as any).logoUrl) {
@@ -73,7 +73,7 @@ export function Header() {
       console.error("Error loading avatar:", error)
     }
   }
-  
+
   const checkAuthState = () => {
     const token = localStorage.getItem("token")
     const userTypeFromStorage = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | "ADMIN" | null
@@ -81,29 +81,29 @@ export function Header() {
     setIsLoggedIn(!!token)
     setUserType(userTypeFromStorage)
 
-//     const syncAuthState = () => {
-//       const t = localStorage.getItem("token")
-//       const r = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
-//       setIsLoggedIn(!!t)
-//       setUserType(r)
-//     }
+    //     const syncAuthState = () => {
+    //       const t = localStorage.getItem("token")
+    //       const r = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
+    //       setIsLoggedIn(!!t)
+    //       setUserType(r)
+    //     }
 
-//     const handleAuthChanged = () => syncAuthState()
-//     const handleStorage = (e: StorageEvent) => {
-//       if (e.key === "token" ||e.key === "userType") {
-//         syncAuthState()
-//       }
-//     }
+    //     const handleAuthChanged = () => syncAuthState()
+    //     const handleStorage = (e: StorageEvent) => {
+    //       if (e.key === "token" ||e.key === "userType") {
+    //         syncAuthState()
+    //       }
+    //     }
 
-//     window.addEventListener("auth:changed", handleAuthChanged as EventListener)
-//     window.addEventListener("storage", handleStorage)
+    //     window.addEventListener("auth:changed", handleAuthChanged as EventListener)
+    //     window.addEventListener("storage", handleStorage)
 
-//     return () => {
-//       window.removeEventListener("auth:changed", handleAuthChanged as EventListener)
-//       window.removeEventListener("storage", handleStorage)
+    //     return () => {
+    //       window.removeEventListener("auth:changed", handleAuthChanged as EventListener)
+    //       window.removeEventListener("storage", handleStorage)
 
     if (fullName) setUserName(fullName)
-    
+
     // Load avatar if logged in (not for ADMIN)
     if (token && userTypeFromStorage && userTypeFromStorage !== "ADMIN") {
       loadUserAvatar()
@@ -164,7 +164,7 @@ export function Header() {
       heartbeatOutgoing: 4000,
       onConnect: () => {
         console.log("[NOTIFICATION WEBSOCKET] Connected")
-        
+
         // Determine topic based on user role
         let topic: string
         if (role === "APPLICANT") {
@@ -182,7 +182,7 @@ export function Header() {
           try {
             const notification: NotificationResponse = JSON.parse(message.body)
             console.log("[NOTIFICATION WEBSOCKET] Received new notification:", notification)
-            
+
             // Add notification to the list
             setNotifications((prev) => {
               const exists = prev.some(n => n.id === notification.id)
@@ -191,14 +191,14 @@ export function Header() {
               }
               return [notification, ...prev]
             })
-            
+
             // Update unread count
             setUnreadCount((prev) => prev + 1)
           } catch (error) {
             console.error("[NOTIFICATION WEBSOCKET] Error parsing notification:", error)
           }
         })
-        
+
         return subscription
       },
       onStompError: (frame) => {
@@ -330,6 +330,32 @@ export function Header() {
     window.location.href = "/"
   }
 
+  const getInitial = (name: string) => {
+    if (!name) return "?";
+    const parts = name.trim().split(/\s+/);
+    const first = parts[0]?.charAt(0).toUpperCase();
+    const last = parts[parts.length - 1]?.charAt(0).toUpperCase();
+
+    if (parts.length === 1) return first;
+
+    return first + last;
+  };
+
+  const getColorFromName = (name: string) => {
+    const colors = [
+      "bg-red-500",
+      "bg-green-500",
+      "bg-blue-500",
+      "bg-purple-500",
+      "bg-pink-500",
+      "bg-yellow-500",
+      "bg-indigo-500",
+      "bg-teal-500",
+    ];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
@@ -375,18 +401,17 @@ export function Header() {
                 {userType === "EMPLOYER" && (
                   <>
                     <Link href="/employer/dashboard">
-                      <Button variant="ghost" size="sm">
-                        <Building2 className="h-4 w-4 mr-2" />
+                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                         Dashboard
                       </Button>
                     </Link>
                     <Link href="/employer/jobs">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors" size="sm">
                         Quản lý việc làm
                       </Button>
                     </Link>
                     <Link href="/employer/applicants">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors" size="sm">
                         Quản lý Ứng viên
                       </Button>
                     </Link>
@@ -396,28 +421,28 @@ export function Header() {
                 {userType === "ADMIN" && (
                   <>
                     <Link href="/admin/dashboard">
-                      <Button variant="ghost" size="sm">
-                        <Building2 className="h-4 w-4 mr-2" />
-                        Admin Dashboard
+                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                        
+                        Dashboard
                       </Button>
                     </Link>
-                    <Link href="/admin/jobs">
-                      <Button variant="ghost" size="sm">
+                    <Link href="/admin/jobs" >
+                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                         Quản lý việc làm
                       </Button>
                     </Link>
                     <Link href="/admin/companies">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                         Quản lý công ty
                       </Button>
                     </Link>
                     <Link href="/admin/applicants">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                         Quản lý ứng viên
                       </Button>
                     </Link>
                     <Link href="/admin/statistics">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                         Thống kê
                       </Button>
                     </Link>
@@ -425,11 +450,12 @@ export function Header() {
                 )}
 
                 <div className="relative" ref={notificationRef}>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     size="sm"
+                    className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative mt-1"
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                    className="relative"
+
                   >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
@@ -530,7 +556,7 @@ export function Header() {
                   )}
                 </div>
 
-                <div className="relative pb-2" ref={dropdownRef}
+                <div className="relative pb-2 mt-2.5" ref={dropdownRef}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}>
                   <Button
@@ -541,24 +567,51 @@ export function Header() {
                     className="flex items-center gap-2 hover:text-current"
                   >
                     {avatarUrl ? (
-                      <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
-                        <img
-                          src={avatarUrl}
-                          alt={userName}
-                          className="h-full w-full object-cover"
-                          onError={() => setAvatarUrl(null)}
-                        />
+                      // <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
+                      //   <img
+                      //     src={avatarUrl}
+                      //     alt={userName}
+                      //     className="h-full w-full object-cover"
+                      //     onError={() => setAvatarUrl(null)}
+                      //   />
+                      // </div>
+                      <div
+                        className={`
+                          h-8 w-8
+                          rounded-full
+                          flex items-center justify-center
+                          text-white
+                          ${getColorFromName(userName)}
+                      `}
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {getInitial(userName)}
                       </div>
                     ) : (
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <User className="h-4 w-4 text-primary" />
+                      <div
+                        className={`
+                          h-8 w-8
+                          rounded-full
+                          flex items-center justify-center
+                          text-white
+                          ${getColorFromName(userName)}
+                      `}
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {getInitial(userName)}
                       </div>
                     )}
                     <div className="flex flex-col items-start">
                       <span className="text-sm font-medium">{userName}</span>
                       {userType === "APPLICANT" && <span className="text-xs text-primary">Đang tìm việc</span>}
                     </div>
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown className="h-4 w-4 mt-1" />
                   </Button>
 
 
@@ -567,30 +620,32 @@ export function Header() {
                       <div className="p-4">
                         {/* User info header */}
                         <div className="flex items-center gap-3 mb-4">
-                          {avatarUrl ? (
-                            <div className="h-12 w-12 rounded-full overflow-hidden flex-shrink-0">
-                              <img
-                                src={avatarUrl}
-                                alt={userName}
-                                className="h-full w-full object-cover"
-                                onError={() => setAvatarUrl(null)}
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                              <User className="h-6 w-6 text-primary" />
-                            </div>
-                          )}
+
+                          <div
+                            className={`
+                              h-12 w-12
+                              rounded-full
+                              flex items-center justify-center
+                              text-white
+                              ${getColorFromName(userName)}
+                            `}
+                            style={{
+                              fontSize: "1rem",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {getInitial(userName)}
+                          </div>
                           <div className="flex-1">
                             <h3 className="font-medium">{userName}</h3>
                             {userType === "APPLICANT" && (
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="text-sm text-primary">Đang tìm việc</span>
-                                <Switch
+                                {/* <Switch
                                   checked={isJobSeeking}
                                   onCheckedChange={setIsJobSeeking}
                                   className="data-[state=checked]:bg-primary"
-                                />
+                                /> */}
                               </div>
                             )}
                           </div>
@@ -637,15 +692,27 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Building2 className="h-5 w-5 text-primary" />
-                                <span className="text-sm">Admin Dashboard</span>
+                                <Image
+                                  src="/assets/dashboard.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Dashboard"
+                                  className="h-6 w-6"
+                                />
+                                <span className="text-sm">Dashboard</span>
                               </Link>
                               <Link
                                 href="/admin/jobs"
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Briefcase className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/job-description.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Job Management"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Quản lý việc làm</span>
                               </Link>
                               <Link
@@ -653,7 +720,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Building2 className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/software-as-service.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Company Management"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Quản lý công ty</span>
                               </Link>
                               <Link
@@ -661,7 +734,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Users className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/team.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Applicant Management"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Quản lý ứng viên</span>
                               </Link>
                               <Link
@@ -669,7 +748,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <BarChart3 className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/analytics.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Admin Statistics"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Thống kê</span>
                               </Link>
                             </>
@@ -688,7 +773,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Edit className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/update.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Update Profile"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Cập nhật hồ sơ</span>
                               </Link>
                               <Link
@@ -696,7 +787,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Briefcase className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/job.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Job Applied"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Việc làm đã ứng tuyển</span>
                               </Link>
                               <Link
@@ -704,7 +801,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Heart className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/job-search.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Saeved Jobs"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Việc làm đã lưu</span>
                               </Link>
                               {/* <Link
@@ -731,7 +834,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Building2 className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/dashboard.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Dashboard"
+                                  className="h-6 w-6"
+                                />
                                 <span className="text-sm">Dashboard</span>
                               </Link>
                               <Link
@@ -739,7 +848,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Briefcase className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/project-management.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Job Management"
+                                  className="h-6 w-6 ml-0.5"
+                                />
                                 <span className="text-sm">Quản lý việc làm</span>
                               </Link>
                               <Link
@@ -747,7 +862,13 @@ export function Header() {
                                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                                 onClick={() => setIsUserDropdownOpen(false)}
                               >
-                                <Edit className="h-5 w-5 text-primary" />
+                                <Image
+                                  src="/assets/company.png"
+                                  width={40}
+                                  height={40}
+                                  alt="update Company Profile"
+                                  className="h-6 w-6 ml-0.5"
+                                />
                                 <span className="text-sm">Cập nhật hồ sơ công ty</span>
                               </Link>
                             </>
@@ -758,7 +879,13 @@ export function Header() {
                             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors"
                             onClick={() => setIsUserDropdownOpen(false)}
                           >
-                            <Lock className="h-5 w-5 text-primary" />
+                            <Image
+                                  src="/assets/reset-password.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Change Password"
+                                  className="h-6 w-6"
+                                />
                             <span className="text-sm">Đổi mật khẩu</span>
                           </Link>
 
@@ -769,7 +896,13 @@ export function Header() {
                             }}
                             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 transition-colors w-full text-left bg-red-50/50"
                           >
-                            <LogOut className="h-5 w-5 text-red-600" />
+                            <Image
+                                  src="/assets/logout.png"
+                                  width={40}
+                                  height={40}
+                                  alt="Logout"
+                                  className="h-6 w-6"
+                                />
                             <span className="text-sm text-red-600">Đăng xuất</span>
                           </button>
                         </div>
@@ -779,20 +912,9 @@ export function Header() {
                 </div>
                 {userType === "APPLICANT" && (
                   <>
-                    <Link href="/employer/register">
+                    {/* <Link href="/employer/register">
                       <Button size="sm" className="bg-[#1e7efc] hover:bg-[#2ea3ff] text-white font-medium">
                         NHÀ TUYỂN DỤNG
-                      </Button>
-                    </Link>
-                    {/* <Link href="/applications">
-                      <Button variant="ghost" size="sm">
-                        <Users className="h-4 w-4 mr-2" />
-                        Đơn ứng tuyển
-                      </Button>
-                    </Link>
-                    <Link href="/saved-jobs">
-                      <Button variant="ghost" size="sm">
-                        Việc đã lưu
                       </Button>
                     </Link> */}
                   </>
@@ -801,7 +923,7 @@ export function Header() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/login">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                     Đăng nhập
                   </Button>
                 </Link>
