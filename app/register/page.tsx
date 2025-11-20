@@ -3,46 +3,105 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Briefcase, Eye, EyeOff, Loader2, CheckCircle } from "lucide-react"
 import { api } from "@/lib/api"
+import Stepper, { Step } from "@/components/stepper"
+import StepOneAccountType from "@/components/register/step-one-account-type"
+import StepTwoApplicantForm from "@/components/register/step-two-applicant-form"
+import StepTwoEmployerForm from "@/components/register/step-two-employer-form"
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [formData, setFormData] = useState({
+  const [currentStep, setCurrentStep] = useState(1)
+  const [accountType, setAccountType] = useState<"APPLICANT" | "EMPLOYER" | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const [applicantForm, setApplicantForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
     userName: "",
     password: "",
     confirmPassword: "",
-    userType: "APPLICANT" as "APPLICANT" | "EMPLOYER",
   })
+
+  const [employerForm, setEmployerForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    userName: "",
+    password: "",
+    confirmPassword: "",
+    phone: "",
+    companyName: "",
+    industry: "",
+    address: "",
+  })
+
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleStepChange = (step: number) => {
+    setCurrentStep(step)
     setError("")
-    setSuccess("")
+  }
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
+  const handleAccountTypeSelect = (type: "APPLICANT" | "EMPLOYER") => {
+    setAccountType(type)
+    setError("")
+  }
+
+  const handleRegistrationSuccess = (response: any) => {
+    console.log("Registration response:", response)
+
+    if (response.data) {
+      localStorage.setItem("token", response.data.accessToken)
+      localStorage.setItem("refreshToken", response.data.refreshToken)
+      localStorage.setItem("userId", response.data.id)
+      localStorage.setItem("userType", response.data.userType || accountType)
+      localStorage.setItem("fullName", `${response.data.firstName} ${response.data.lastName}`)
+      localStorage.setItem("email", response.data.email)
+      localStorage.setItem("phone", response.data.phone || "")
+      localStorage.setItem("role", response.data.userType || accountType)
+    }
+
+    window.dispatchEvent(new Event("auth:changed"))
+    router.push("/")
+    router.refresh()
+  }
+
+  const handleApplicantSubmit = async () => {
+    setError("")
+    setIsLoading(true)
+
+    if (!applicantForm.firstName.trim()) {
+      setError("Vui lòng nhập họ")
+      setIsLoading(false)
+      return
+    }
+    if (!applicantForm.lastName.trim()) {
+      setError("Vui lòng nhập tên")
+      setIsLoading(false)
+      return
+    }
+    if (!applicantForm.email.trim()) {
+      setError("Vui lòng nhập email")
+      setIsLoading(false)
+      return
+    }
+    if (!applicantForm.userName.trim()) {
+      setError("Vui lòng nhập tên đăng nhập")
+      setIsLoading(false)
+      return
+    }
+    if (applicantForm.password !== applicantForm.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp")
       setIsLoading(false)
       return
     }
-
-    if (formData.password.length < 6) {
+    if (applicantForm.password.length < 6) {
       setError("Mật khẩu phải có ít nhất 6 ký tự")
       setIsLoading(false)
       return
@@ -50,20 +109,15 @@ export default function RegisterPage() {
 
     try {
       const response = await api.register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        userName: formData.userName,
-        password: formData.password,
-        userType: formData.userType,
+        firstName: applicantForm.firstName,
+        lastName: applicantForm.lastName,
+        email: applicantForm.email,
+        userName: applicantForm.userName,
+        password: applicantForm.password,
+        userType: "APPLICANT",
       })
-      
-      setSuccess("Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.")
-      
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        router.push("/login")
-      }, 3000)
+
+      handleRegistrationSuccess(response)
     } catch (err: any) {
       setError(err.message || "Đăng ký thất bại")
     } finally {
@@ -71,212 +125,156 @@ export default function RegisterPage() {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
+  const handleEmployerSubmit = async () => {
+    setError("")
+    setIsLoading(true)
 
-  const handleSelectChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      userType: value as "APPLICANT" | "EMPLOYER"
-    }))
+    // Validation
+    if (!employerForm.firstName.trim()) {
+      setError("Vui lòng nhập họ")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.lastName.trim()) {
+      setError("Vui lòng nhập tên")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.email.trim()) {
+      setError("Vui lòng nhập email")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.userName.trim()) {
+      setError("Vui lòng nhập tên đăng nhập")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.phone.trim()) {
+      setError("Vui lòng nhập số điện thoại")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.companyName.trim()) {
+      setError("Vui lòng nhập tên công ty")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.industry.trim()) {
+      setError("Vui lòng nhập ngành nghề")
+      setIsLoading(false)
+      return
+    }
+    if (!employerForm.address.trim()) {
+      setError("Vui lòng nhập địa chỉ")
+      setIsLoading(false)
+      return
+    }
+    if (employerForm.password !== employerForm.confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp")
+      setIsLoading(false)
+      return
+    }
+    if (employerForm.password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự")
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const response = await api.registerEmployer({
+        firstName: employerForm.firstName,
+        lastName: employerForm.lastName,
+        email: employerForm.email,
+        userName: employerForm.userName,
+        password: employerForm.password,
+        phone: employerForm.phone,
+        companyName: employerForm.companyName,
+        industry: employerForm.industry,
+        address: employerForm.address,
+      })
+
+      handleRegistrationSuccess(response)
+    } catch (err: any) {
+      setError(err.message || "Đăng ký thất bại")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 py-12 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        
-
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 py-8 px-4">
+      <div className="w-full max-w-2xl">
         <Card>
-          <CardHeader className="text-center">
+          <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl">Đăng ký tài khoản</CardTitle>
             <CardDescription>
-              Tạo tài khoản mới để bắt đầu tìm việc làm
+              {currentStep === 1 ? "Chọn loại tài khoản phù hợp với bạn" : "Điền thông tin để tạo tài khoản"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-              {success && (
-                <Alert className="border-green-200 bg-green-50 text-green-800">
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">Họ</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    placeholder="Nhập họ"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Tên</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    placeholder="Nhập tên"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Nhập email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
+            <Stepper
+              initialStep={1}
+              onStepChange={handleStepChange}
+              disableStepIndicators={true}
+              stepCircleContainerClassName="gap-4"
+              contentClassName="min-h-[350px]"
+              backButtonText="Quay lại"
+              nextButtonText="Tiếp tục"
+            >
+              {/* Step 1: Account Type Selection */}
+              <Step>
+                <StepOneAccountType
+                  selectedType={accountType}
+                  onSelectType={handleAccountTypeSelect}
+                  isDisabled={isLoading}
                 />
-              </div>
+              </Step>
 
-              <div className="space-y-2">
-                <Label htmlFor="userName">Tên đăng nhập</Label>
-                <Input
-                  id="userName"
-                  name="userName"
-                  type="text"
-                  placeholder="Nhập tên đăng nhập"
-                  value={formData.userName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="userType">Loại tài khoản</Label>
-                <Select value={formData.userType} onValueChange={handleSelectChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn loại tài khoản" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem className="cursor-pointer hover:text-blue-600 focus:text-blue-600" value="APPLICANT">Ứng viên</SelectItem>
-                    <SelectItem className="cursor-pointer hover:text-blue-600 focus:text-blue-600" value="EMPLOYER">Nhà tuyển dụng</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Mật khẩu</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Nhập mật khẩu"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
+              {/* Step 2: Form (Applicant or Employer) */}
+              <Step>
+                {accountType === "APPLICANT" ? (
+                  <StepTwoApplicantForm
+                    formData={applicantForm}
+                    setFormData={setApplicantForm}
+                    onSubmit={handleApplicantSubmit}
+                    isLoading={isLoading}
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    showConfirmPassword={showConfirmPassword}
+                    setShowConfirmPassword={setShowConfirmPassword}
                   />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Nhập lại mật khẩu"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  id="terms"
-                  type="checkbox"
-                  className="rounded border-gray-300"
-                  required
-                />
-                <Label htmlFor="terms" className="text-sm">
-                  Tôi đồng ý với{" "}
-                  <Link href="/terms" className="text-primary hover:underline">
-                    Điều khoản sử dụng
-                  </Link>{" "}
-                  và{" "}
-                  <Link href="/privacy" className="text-primary hover:underline">
-                    Chính sách bảo mật
-                  </Link>
-                </Label>
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang đăng ký...
-                  </>
                 ) : (
-                  "Đăng ký"
+                  <StepTwoEmployerForm
+                    formData={employerForm}
+                    setFormData={setEmployerForm}
+                    onSubmit={handleEmployerSubmit}
+                    isLoading={isLoading}
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    showConfirmPassword={showConfirmPassword}
+                    setShowConfirmPassword={setShowConfirmPassword}
+                  />
                 )}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Đã có tài khoản?{" "}
-                <Link href="/login" className="text-primary hover:underline">
-                  Đăng nhập ngay
-                </Link>
-              </p>
-            </div>
+              </Step>
+            </Stepper>
           </CardContent>
         </Card>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Đã có tài khoản?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Đăng nhập ngay
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

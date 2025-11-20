@@ -4,31 +4,13 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
-import { api, NotificationResponse } from "@/lib/api"
+import { api, type NotificationResponse } from "@/lib/api"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
-import {
-  Search,
-  User,
-  Bell,
-  Menu,
-  X,
-  Building2,
-  Users,
-  LogOut,
-  FileText,
-  Eye,
-  Lock,
-  Heart,
-  Briefcase,
-  Edit,
-  ChevronDown,
-  BarChart3,
-} from "lucide-react"
+import { Search, Bell, Menu, X, ChevronDown } from "lucide-react"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -81,27 +63,6 @@ export function Header() {
     setIsLoggedIn(!!token)
     setUserType(userTypeFromStorage)
 
-    //     const syncAuthState = () => {
-    //       const t = localStorage.getItem("token")
-    //       const r = localStorage.getItem("userType") as "APPLICANT" | "EMPLOYER" | null
-    //       setIsLoggedIn(!!t)
-    //       setUserType(r)
-    //     }
-
-    //     const handleAuthChanged = () => syncAuthState()
-    //     const handleStorage = (e: StorageEvent) => {
-    //       if (e.key === "token" ||e.key === "userType") {
-    //         syncAuthState()
-    //       }
-    //     }
-
-    //     window.addEventListener("auth:changed", handleAuthChanged as EventListener)
-    //     window.addEventListener("storage", handleStorage)
-
-    //     return () => {
-    //       window.removeEventListener("auth:changed", handleAuthChanged as EventListener)
-    //       window.removeEventListener("storage", handleStorage)
-
     if (fullName) setUserName(fullName)
 
     // Load avatar if logged in (not for ADMIN)
@@ -115,40 +76,40 @@ export function Header() {
   useEffect(() => {
     checkAuthState()
 
+    const handleAuthChanged = () => {
+      checkAuthState()
+    }
+
     const handleStorageChange = () => {
       checkAuthState()
     }
 
+    window.addEventListener("auth:changed", handleAuthChanged as EventListener)
     window.addEventListener("storage", handleStorageChange)
 
     return () => {
+      window.removeEventListener("auth:changed", handleAuthChanged as EventListener)
       window.removeEventListener("storage", handleStorageChange)
     }
   }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsUserDropdownOpen(false);
-        setIsPinned(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false)
+        setIsPinned(false)
       }
-      if (
-        notificationRef.current &&
-        !notificationRef.current.contains(event.target as Node)
-      ) {
-        setIsNotificationOpen(false);
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false)
       }
-    };
+    }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside)
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [dropdownRef, notificationRef]);
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [dropdownRef, notificationRef])
 
   // Initialize WebSocket connection for realtime notifications
   useEffect(() => {
@@ -185,7 +146,7 @@ export function Header() {
 
             // Add notification to the list
             setNotifications((prev) => {
-              const exists = prev.some(n => n.id === notification.id)
+              const exists = prev.some((n) => n.id === notification.id)
               if (exists) {
                 return prev
               }
@@ -296,22 +257,20 @@ export function Header() {
   }
 
   const handleClick = () => {
-
-    const newPinnedState = !isPinned;
-    setIsPinned(newPinnedState);
-    setIsUserDropdownOpen(newPinnedState);
-  };
+    const newPinnedState = !isPinned
+    setIsPinned(newPinnedState)
+    setIsUserDropdownOpen(newPinnedState)
+  }
 
   const handleMouseEnter = () => {
-    setIsUserDropdownOpen(true);
-  };
-
+    setIsUserDropdownOpen(true)
+  }
 
   const handleMouseLeave = () => {
     if (!isPinned) {
-      setIsUserDropdownOpen(false);
+      setIsUserDropdownOpen(false)
     }
-  };
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -331,15 +290,15 @@ export function Header() {
   }
 
   const getInitial = (name: string) => {
-    if (!name) return "?";
-    const parts = name.trim().split(/\s+/);
-    const first = parts[0]?.charAt(0).toUpperCase();
-    const last = parts[parts.length - 1]?.charAt(0).toUpperCase();
+    if (!name) return "?"
+    const parts = name.trim().split(/\s+/)
+    const first = parts[0]?.charAt(0).toUpperCase()
+    const last = parts[parts.length - 1]?.charAt(0).toUpperCase()
 
-    if (parts.length === 1) return first;
+    if (parts.length === 1) return first
 
-    return first + last;
-  };
+    return first + last
+  }
 
   const getColorFromName = (name: string) => {
     const colors = [
@@ -351,10 +310,10 @@ export function Header() {
       "bg-yellow-500",
       "bg-indigo-500",
       "bg-teal-500",
-    ];
-    const index = name.charCodeAt(0) % colors.length;
-    return colors[index];
-  };
+    ]
+    const index = name.charCodeAt(0) % colors.length
+    return colors[index]
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -397,21 +356,32 @@ export function Header() {
 
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
-
                 {userType === "EMPLOYER" && (
                   <>
                     <Link href="/employer/dashboard">
-                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      >
                         Dashboard
                       </Button>
                     </Link>
                     <Link href="/employer/jobs">
-                      <Button variant="ghost" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors" size="sm">
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                        size="sm"
+                      >
                         Quản lý việc làm
                       </Button>
                     </Link>
                     <Link href="/employer/applicants">
-                      <Button variant="ghost" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors" size="sm">
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                        size="sm"
+                      >
                         Quản lý Ứng viên
                       </Button>
                     </Link>
@@ -421,28 +391,47 @@ export function Header() {
                 {userType === "ADMIN" && (
                   <>
                     <Link href="/admin/dashboard">
-                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                        
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      >
                         Dashboard
                       </Button>
                     </Link>
-                    <Link href="/admin/jobs" >
-                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <Link href="/admin/jobs">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      >
                         Quản lý việc làm
                       </Button>
                     </Link>
                     <Link href="/admin/companies">
-                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      >
                         Quản lý công ty
                       </Button>
                     </Link>
                     <Link href="/admin/applicants">
-                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      >
                         Quản lý ứng viên
                       </Button>
                     </Link>
                     <Link href="/admin/statistics">
-                      <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                      >
                         Thống kê
                       </Button>
                     </Link>
@@ -455,7 +444,6 @@ export function Header() {
                     size="sm"
                     className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative mt-1"
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-
                   >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
@@ -473,9 +461,7 @@ export function Header() {
                           <Bell className="h-5 w-5" />
                           <h3 className="font-semibold">Thông báo</h3>
                           {unreadCount > 0 && (
-                            <Badge className="bg-red-500 ml-2">
-                              {unreadCount > 9 ? "9+" : unreadCount}
-                            </Badge>
+                            <Badge className="bg-red-500 ml-2">{unreadCount > 9 ? "9+" : unreadCount}</Badge>
                           )}
                         </div>
                         <Button
@@ -509,18 +495,12 @@ export function Header() {
                                 className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="text-2xl flex-shrink-0">
-                                    {getNotificationIcon(notification.type)}
-                                  </div>
+                                  <div className="text-2xl flex-shrink-0">{getNotificationIcon(notification.type)}</div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="flex-1">
-                                        <p className="text-sm font-medium text-gray-900 mb-1">
-                                          {notification.message}
-                                        </p>
-                                        <p className="text-xs text-gray-500">
-                                          {formatTime(notification.createdAt)}
-                                        </p>
+                                        <p className="text-sm font-medium text-gray-900 mb-1">{notification.message}</p>
+                                        <p className="text-xs text-gray-500">{formatTime(notification.createdAt)}</p>
                                       </div>
                                       <Button
                                         variant="ghost"
@@ -546,7 +526,7 @@ export function Header() {
                           variant="outline"
                           size="sm"
                           onClick={loadNotifications}
-                          className="w-full"
+                          className="w-full bg-transparent"
                           disabled={isLoadingNotifications}
                         >
                           {isLoadingNotifications ? "Đang tải..." : "Tải lại"}
@@ -556,20 +536,22 @@ export function Header() {
                   )}
                 </div>
 
-                <div className="relative pb-2 mt-2.5" ref={dropdownRef}
+                <div
+                  className="relative pb-2 mt-2.5"
+                  ref={dropdownRef}
                   onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}>
+                  onMouseLeave={handleMouseLeave}
+                >
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleClick}
-
                     className="flex items-center gap-2 hover:text-current"
                   >
                     {avatarUrl ? (
                       // <div className="h-8 w-8 rounded-full overflow-hidden flex-shrink-0">
                       //   <img
-                      //     src={avatarUrl}
+                      //     src={avatarUrl || "/placeholder.svg"}
                       //     alt={userName}
                       //     className="h-full w-full object-cover"
                       //     onError={() => setAvatarUrl(null)}
@@ -614,13 +596,11 @@ export function Header() {
                     <ChevronDown className="h-4 w-4 mt-1" />
                   </Button>
 
-
                   {isUserDropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-96 bg-background border rounded-lg shadow-lg"  >
+                    <div className="absolute left-0 mt-2 w-96 bg-background border rounded-lg shadow-lg">
                       <div className="p-4">
                         {/* User info header */}
                         <div className="flex items-center gap-3 mb-4">
-
                           <div
                             className={`
                               h-12 w-12
@@ -880,12 +860,12 @@ export function Header() {
                             onClick={() => setIsUserDropdownOpen(false)}
                           >
                             <Image
-                                  src="/assets/reset-password.png"
-                                  width={40}
-                                  height={40}
-                                  alt="Change Password"
-                                  className="h-6 w-6"
-                                />
+                              src="/assets/reset-password.png"
+                              width={40}
+                              height={40}
+                              alt="Change Password"
+                              className="h-6 w-6"
+                            />
                             <span className="text-sm">Đổi mật khẩu</span>
                           </Link>
 
@@ -896,13 +876,7 @@ export function Header() {
                             }}
                             className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-red-50 transition-colors w-full text-left bg-red-50/50"
                           >
-                            <Image
-                                  src="/assets/logout.png"
-                                  width={40}
-                                  height={40}
-                                  alt="Logout"
-                                  className="h-6 w-6"
-                                />
+                            <Image src="/assets/logout.png" width={40} height={40} alt="Logout" className="h-6 w-6" />
                             <span className="text-sm text-red-600">Đăng xuất</span>
                           </button>
                         </div>
@@ -923,7 +897,11 @@ export function Header() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/login">
-                  <Button variant="ghost" size="sm" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                  >
                     Đăng nhập
                   </Button>
                 </Link>
