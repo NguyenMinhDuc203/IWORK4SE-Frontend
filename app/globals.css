@@ -11,7 +11,7 @@
 
   /* Accent - Light Blue from logo */
   --accent: klch(61.47% 0.14759 250.363);
-  --accent-foreground: oklch(0.98 0 0);
+  --accent-foreground: #1e7efc;
 
   /* Background - Clean white */
   --background: oklch(0.99 0 0);

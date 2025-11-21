@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { X, Search, Send, Paperclip, ChevronDown } from "lucide-react"
-import { api, ConversationResponse, MessageResponse } from "@/lib/api"
+import { X, Search, Send, Paperclip, MessageCircle, ChevronLeft, ChevronDown } from "lucide-react"
+import { api, type ConversationResponse, type MessageResponse } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -56,29 +56,26 @@ export default function ChatWidget() {
           try {
             const newMessage: MessageResponse = JSON.parse(message.body)
             console.log("[WEBSOCKET] Received new message:", newMessage)
-            
+
             // Add message to current conversation if it matches
             setMessages((prev) => {
               // Check if message already exists
-              const exists = prev.some(m => m.id === newMessage.id)
+              const exists = prev.some((m) => m.id === newMessage.id)
               if (exists) {
                 return prev
               }
-              
+
               // Only add if it belongs to the current conversation
-              if (selectedConversation && 
-                  (newMessage.conversationId === selectedConversation.id)) {
+              if (selectedConversation && newMessage.conversationId === selectedConversation.id) {
                 // Add and sort
                 const updated = [...prev, newMessage]
-                updated.sort((a, b) => 
-                  new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
-                )
+                updated.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime())
                 return updated
               }
-              
+
               return prev
             })
-            
+
             // Update unread count
             if (newMessage.receiverId === currentUserId) {
               setUnreadCount((prev) => prev + 1)
@@ -89,9 +86,11 @@ export default function ChatWidget() {
             console.error("[WEBSOCKET] Error parsing message:", error)
           }
         })
-        
+
         // Store subscription for cleanup
-        return subscription
+        return () => {
+          client.deactivate()
+        }
       },
       onStompError: (frame) => {
         console.error("[WEBSOCKET] STOMP error:", frame)
@@ -104,7 +103,7 @@ export default function ChatWidget() {
     return () => {
       client.deactivate()
     }
-  }, [currentUserId, isOpen, selectedConversation?.id])
+  }, [currentUserId, isOpen])
 
   // Load conversations and users
   useEffect(() => {
@@ -142,7 +141,7 @@ export default function ChatWidget() {
 
     const showHelper = () => {
       setHelperMessage("Liên hệ với admin")
-      
+
       // Auto-hide after 5 seconds
       setTimeout(() => {
         setHelperMessage("")
@@ -212,7 +211,7 @@ export default function ChatWidget() {
       console.log("[CHAT] Loading messages for conversation:", conversationId)
       const response = await api.getConversationMessages(conversationId, 0, 100)
       console.log("[CHAT] Response from API:", response)
-      
+
       // Backend returns Page object: { content: [...], totalElements, totalPages, ... }
       let messagesData = []
       if (response?.content && Array.isArray(response.content)) {
@@ -226,12 +225,12 @@ export default function ChatWidget() {
       } else if (Array.isArray(response)) {
         messagesData = response
       }
-      
+
       console.log("[CHAT] Parsed messages:", messagesData)
-      
+
       // Sort by sentAt ascending (oldest first)
-      messagesData.sort((a: MessageResponse, b: MessageResponse) => 
-        new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+      messagesData.sort(
+        (a: MessageResponse, b: MessageResponse) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime(),
       )
       setMessages(messagesData)
       console.log("[CHAT] Set messages count:", messagesData.length)
@@ -277,9 +276,7 @@ export default function ChatWidget() {
     if (!messageInput.trim() || !selectedConversation || !currentUserId) return
 
     const receiverId =
-      selectedConversation.user1Id === currentUserId
-        ? selectedConversation.user2Id
-        : selectedConversation.user1Id
+      selectedConversation.user1Id === currentUserId ? selectedConversation.user2Id : selectedConversation.user1Id
 
     const content = messageInput.trim()
     setMessageInput("") // Clear input immediately for better UX
@@ -288,19 +285,17 @@ export default function ChatWidget() {
       console.log("[CHAT] Sending message to:", receiverId, "Content:", content)
       const response = await api.sendMessage({ receiverId, content })
       console.log("[CHAT] Message sent, response:", response)
-      
+
       // If WebSocket didn't add the message, add it manually
       // This handles cases where WebSocket might be slow or disconnected
       setTimeout(() => {
         if (response?.data) {
           const sentMessage = response.data
           setMessages((prev) => {
-            const exists = prev.some(m => m.id === sentMessage.id)
+            const exists = prev.some((m) => m.id === sentMessage.id)
             if (exists) return prev
             const updated = [...prev, sentMessage]
-            updated.sort((a, b) => 
-              new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
-            )
+            updated.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime())
             return updated
           })
         }
@@ -317,26 +312,22 @@ export default function ChatWidget() {
     if (!selectedConversation || !currentUserId) return
 
     const receiverId =
-      selectedConversation.user1Id === currentUserId
-        ? selectedConversation.user2Id
-        : selectedConversation.user1Id
+      selectedConversation.user1Id === currentUserId ? selectedConversation.user2Id : selectedConversation.user1Id
 
     try {
       console.log("[CHAT] Sending image to:", receiverId)
       const response = await api.sendImageMessage(receiverId, file)
       console.log("[CHAT] Image sent, response:", response)
-      
+
       // If WebSocket didn't add the message, add it manually
       setTimeout(() => {
         if (response?.data) {
           const sentMessage = response.data
           setMessages((prev) => {
-            const exists = prev.some(m => m.id === sentMessage.id)
+            const exists = prev.some((m) => m.id === sentMessage.id)
             if (exists) return prev
             const updated = [...prev, sentMessage]
-            updated.sort((a, b) => 
-              new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
-            )
+            updated.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime())
             return updated
           })
         }
@@ -362,9 +353,7 @@ export default function ChatWidget() {
           // Get updated conversations
           api.getActiveConversations().then((response) => {
             if (Array.isArray(response)) {
-              const newConv = response.find(
-                (c) => c.user1Id === selectedUserId || c.user2Id === selectedUserId
-              )
+              const newConv = response.find((c) => c.user1Id === selectedUserId || c.user2Id === selectedUserId)
               if (newConv) {
                 setSelectedConversation(newConv)
                 setIsChatOpen(true)
@@ -405,9 +394,9 @@ export default function ChatWidget() {
         {/* Helper Message Bubble - Outside popup for EMPLOYER */}
         {helperMessage && currentRole === "EMPLOYER" && (
           <div className="fixed bottom-28 right-6 z-50 animate-in slide-in-from-bottom-2 fade-in duration-300">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 md:p-4 max-w-xs relative">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-2xl p-3 md:p-4 max-w-xs relative">
               <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
-              <p className="text-sm md:text-base font-semibold md:font-bold text-gray-800 relative z-10">{helperMessage}</p>
+              <p className="text-sm md:text-base font-semibold text-gray-900">{helperMessage}</p>
             </div>
           </div>
         )}
@@ -415,14 +404,14 @@ export default function ChatWidget() {
           <Button
             onClick={() => setIsOpen(true)}
             size="lg"
-            className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 rounded-full bg-red-600 hover:bg-red-700 shadow-lg p-0 flex items-center justify-center"
+            className="relative h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 rounded-full bg-transparent hover:bg-transparent shadow-none border-none p-0"
           >
             <img
-              src="https://img.icons8.com/?size=100&id=tCfT4FT0oGjo&format=png&color=FFFFFF"
+              src="/assets/admin-chat-icon.png"
               alt="Messages"
               width={64}
               height={64}
-              className="brightness-0 invert w-10 h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
+              className="w-full h-full object-contain drop-shadow-lg hover:scale-110 transition-transform duration-200"
             />
             {unreadCount > 0 && (
               <Badge className="absolute -top-1 -right-1 h-6 w-6 rounded-full p-0 flex items-center justify-center bg-red-500">
@@ -440,168 +429,190 @@ export default function ChatWidget() {
       {/* Helper Message Bubble - Outside popup for EMPLOYER */}
       {helperMessage && currentRole === "EMPLOYER" && (
         <div className="fixed bottom-[calc(600px+1.5rem+0.5rem)] right-6 z-[60] max-w-xs">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 md:p-4 relative animate-in slide-in-from-bottom-2 fade-in duration-300">
-            {/* Arrow pointing down */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-2xl p-3 md:p-4 relative animate-in slide-in-from-bottom-2 fade-in duration-300">
             <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-r border-b border-gray-200 transform rotate-45"></div>
-            <p className="text-sm md:text-base font-semibold md:font-bold text-gray-800 relative z-10">{helperMessage}</p>
+            <p className="text-sm md:text-base font-semibold text-gray-900">{helperMessage}</p>
           </div>
         </div>
       )}
-      <div className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col border border-gray-200">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-red-600 text-white rounded-t-lg">
-          <h3 className="font-semibold">Tin nhắn</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setIsOpen(false)
-            setIsChatOpen(false)
-            setSelectedConversation(null)
-          }}
-          className="text-white hover:bg-red-700"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
 
-      {!isChatOpen ? (
-        /* Conversations List */
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Search and Create */}
-          <div className="p-4 border-b space-y-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Tìm kiếm admin/employer..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Chọn người nhận" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.fullName} ({user.userType})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={createNewConversation} disabled={!selectedUserId} size="sm">
-                Tạo chat
-              </Button>
-            </div>
-          </div>
-
-          {/* Conversations */}
-          <ScrollArea className="flex-1">
-            <div className="p-2">
-              {conversations.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  Chưa có cuộc trò chuyện nào
-                </div>
-              ) : (
-                conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => {
-                      setSelectedConversation(conv)
-                      setIsChatOpen(true)
-                    }}
-                    className="p-3 hover:bg-gray-100 rounded-lg cursor-pointer mb-2 relative"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 flex items-start gap-2">
-                        {/* Red dot indicator for unread messages */}
-                        {conv.unreadCount > 0 && (
-                          <div className="mt-1.5 h-2 w-2 rounded-full bg-red-500 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium truncate">{getOtherUserName(conv)}</p>
-                          </div>
-                          <p className="text-sm text-gray-500">{formatTime(conv.lastMessageTime)}</p>
-                        </div>
-                      </div>
-                      {conv.unreadCount > 0 && (
-                        <Badge className="bg-red-500 ml-2 flex-shrink-0">
-                          {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </div>
-      ) : (
-        /* Chat Window */
-        selectedConversation && (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Chat Header */}
-            <div className="p-4 border-b flex items-center justify-between">
-              <div>
+      <div className="fixed bottom-6 right-6 z-50 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col border border-gray-200 overflow-hidden">
+        {/* Header with gradient */}
+        <div className="flex items-center justify-between p-4 bg-[#2ca0ff]">
+          {isChatOpen ? (
+            <>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setIsChatOpen(false)
                     setSelectedConversation(null)
-                    setMessages([])
                   }}
-                  className="mr-2"
+                  className="text-white hover:bg-blue-700"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <span className="font-semibold">{getOtherUserName(selectedConversation)}</span>
+                <div className="min-w-0">
+                  <h3 className="font-semibold truncate text-white">{getOtherUserName(selectedConversation!)}</h3>
+                  <p className="text-xs text-blue-100">Đang hoạt động</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-white" />
+                <h3 className="font-semibold text-lg text-white">Tin nhắn</h3>
+              </div>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setIsOpen(false)
+              setIsChatOpen(false)
+              setSelectedConversation(null)
+            }}
+            className="text-white hover:text-red-500 transition-colors cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {!isChatOpen ? (
+          /* Conversations List */
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Search */}
+            <div className="p-4 border-b border-gray-200 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Tìm kiếm..."
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  className="pl-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger className="flex-1 text-sm border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <SelectValue placeholder="Chọn người nhận" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id} className="text-sm">
+                        {user.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={createNewConversation}
+                  disabled={!selectedUserId}
+                  size="sm"
+                  className="bg-[#2c9fff] hover:bg-blue-700 text-white rounded-lg h-9 px-6 flex items-center justify-center"
+                >
+                  Tạo
+                </Button>
               </div>
             </div>
 
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-2">
-                {messages.length === 0 ? (
+            {/* Conversations List */}
+            <ScrollArea className="flex-1">
+              <div className="p-2">
+                {conversations.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">
-                    Chưa có tin nhắn nào
+                    <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">Chưa có cuộc trò chuyện nào</p>
                   </div>
                 ) : (
-                  messages.map((msg, index) => {
+                  conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      onClick={() => {
+                        setSelectedConversation(conv)
+                        setIsChatOpen(true)
+                      }}
+                      className="p-3 hover:bg-blue-50 rounded-lg cursor-pointer mb-2 transition-colors border border-transparent hover:border-blue-200"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 flex items-start gap-3 min-w-0">
+                          {conv.unreadCount > 0 && (
+                            <div className="mt-1.5 h-3 w-3 rounded-full bg-primary flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`truncate ${conv.unreadCount > 0 ? "font-semibold" : "font-medium"}`}>
+                                {getOtherUserName(conv)}
+                              </p>
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-1">{formatTime(conv.lastMessageTime)}</p>
+                          </div>
+                        </div>
+                        {conv.unreadCount > 0 && (
+                          <Badge className="ml-2 bg-primary text-white text-xs">{conv.unreadCount}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+        ) : (
+          /* Chat View */
+          selectedConversation && (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Chat Header */}
+              <div className="p-4 border-b flex items-center justify-between">
+                <div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsChatOpen(false)
+                      setSelectedConversation(null)
+                      setMessages([])
+                    }}
+                    className="mr-2"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                  <span className="font-semibold">{getOtherUserName(selectedConversation)}</span>
+                </div>
+              </div>
+
+              {/* Messages */}
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4">
+                  {messages.map((msg, index) => {
                     const isOwn = msg.senderId === currentUserId
                     const prevMsg = index > 0 ? messages[index - 1] : null
                     const showSenderName = !prevMsg || prevMsg.senderId !== msg.senderId
-                    const showTime = !prevMsg || 
-                      new Date(msg.sentAt).getTime() - new Date(prevMsg.sentAt).getTime() > 300000 // 5 minutes
-                    
+                    const showTime =
+                      !prevMsg || new Date(msg.sentAt).getTime() - new Date(prevMsg.sentAt).getTime() > 300000 // 5 minutes
+
                     return (
                       <div key={msg.id}>
                         {showTime && (
-                          <div className="text-center text-xs text-gray-400 my-2">
-                            {formatTime(msg.sentAt)}
-                          </div>
+                          <div className="text-center text-xs text-gray-400 my-2">{formatTime(msg.sentAt)}</div>
                         )}
                         <div className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-1`}>
                           <div className={`max-w-[80%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}>
                             {!isOwn && showSenderName && (
-                              <span className="text-xs text-gray-500 mb-1 px-2">
-                                {msg.senderName}
-                              </span>
+                              <span className="text-xs text-gray-500 mb-1 px-2">{msg.senderName}</span>
                             )}
                             <div
-                              className={`rounded-lg p-3 ${
-                                isOwn
-                                  ? "bg-red-600 text-white rounded-br-none"
-                                  : "bg-gray-200 text-gray-900 rounded-bl-none"
-                              }`}
+                              className={`rounded-lg p-3 ${isOwn
+                                ? "bg-red-600 text-white rounded-br-none"
+                                : "bg-gray-200 text-gray-900 rounded-bl-none"
+                                }`}
                             >
                               {msg.messageType === "IMAGE" && msg.imageUrl ? (
                                 <img
-                                  src={msg.imageUrl}
+                                  src={msg.imageUrl || "/placeholder.svg"}
                                   alt="Sent image"
                                   className="max-w-full rounded max-h-64 object-contain"
                                 />
@@ -609,11 +620,7 @@ export default function ChatWidget() {
                                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                               )}
                             </div>
-                            <span
-                              className={`text-xs mt-1 px-2 ${
-                                isOwn ? "text-gray-500" : "text-gray-400"
-                              }`}
-                            >
+                            <span className={`text-xs mt-1 px-2 ${isOwn ? "text-gray-500" : "text-gray-400"}`}>
                               {new Date(msg.sentAt).toLocaleTimeString("vi-VN", {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -623,55 +630,48 @@ export default function ChatWidget() {
                         </div>
                       </div>
                     )
-                  })
-                )}
+                  })}
+                </div>
                 <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Input Area */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      sendImage(file)
-                    }
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Input
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      sendMessage()
-                    }
-                  }}
-                  placeholder="Nhập tin nhắn..."
-                  className="flex-1"
-                />
-                <Button onClick={sendMessage} size="sm" className="bg-red-600 hover:bg-red-700">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+              </ScrollArea>
             </div>
+          )
+        )}
+        {/* Input Area */}
+        <div className="p-4 border-t">
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  sendImage(file)
+                }
+              }}
+            />
+            <Button variant="outline" size="sm" className="h-9" onClick={() => fileInputRef.current?.click()}>
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Input
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  sendMessage()
+                }
+              }}
+              placeholder="Nhập tin nhắn..."
+              className="flex-1"
+            />
+            <Button onClick={sendMessage} size="sm" className="bg-[#2c9fff] hover:bg-blue-700 h-9 w-17">
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
-        )
-      )}
-    </div>
+        </div>
+      </div>
     </>
   )
 }
-

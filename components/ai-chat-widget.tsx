@@ -73,10 +73,10 @@ export default function AIChatWidget() {
       if (isLoadingRef.current) {
         return
       }
-      
+
       const randomMessage = HELPER_MESSAGES[Math.floor(Math.random() * HELPER_MESSAGES.length)]
       setHelperMessage(randomMessage)
-      
+
       // Auto-hide after 5 seconds
       setTimeout(() => {
         setHelperMessage((current) => {
@@ -127,7 +127,7 @@ export default function AIChatWidget() {
       console.log("[AI CHAT] Sending message:", content)
       const response = await api.sendAIMessage(content, conversationHistory)
       console.log("[AI CHAT] Received response:", response)
-      
+
       // Handle both wrapped and unwrapped responses
       let responseData: AIChatResponse | null = null
       if (response && 'data' in response) {
@@ -138,7 +138,7 @@ export default function AIChatWidget() {
         // Direct AIChatResponse
         responseData = response as AIChatResponse
       }
-      
+
       if (responseData?.response) {
         const aiResponse: AIMessage = {
           id: (Date.now() + 1).toString(),
@@ -146,9 +146,9 @@ export default function AIChatWidget() {
           content: responseData.response,
           timestamp: new Date(),
         }
-        
+
         setMessages((prev) => [...prev, aiResponse])
-        
+
         // Update conversation history for context
         if (responseData.conversationHistory) {
           setConversationHistory(responseData.conversationHistory)
@@ -205,14 +205,12 @@ export default function AIChatWidget() {
           <Button
             onClick={() => setIsOpen(true)}
             size="lg"
-            className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg p-0 flex items-center justify-center"
+            className="h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 rounded-full bg-transparent hover:bg-transparent shadow-none border-none p-0"
           >
             <img
-              src="https://img.icons8.com/?size=100&id=8SQ5YC8kxJOf&format=png&color=FFFFFF"
+              src="/assets/chat-bot.png"
               alt="AI Assistant"
-              width={64}
-              height={64}
-              className="brightness-0 invert w-10 h-10 md:w-12 md:h-12 lg:w-16 lg:h-16"
+              className="w-10 h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 object-contain"
             />
           </Button>
         </div>
@@ -233,135 +231,127 @@ export default function AIChatWidget() {
         </div>
       )}
       <div className="fixed bottom-2 right-2 md:bottom-6 md:right-4 z-50 w-[calc(100vw-1rem)] md:w-96 h-[calc(100vh-4rem)] md:h-[600px] max-h-[600px] bg-white rounded-lg shadow-2xl flex flex-col border border-gray-200">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-blue-600 text-white rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <Bot className="h-5 w-5" />
-          <h3 className="font-semibold">Trợ lý AI</h3>
-        </div>
-        <div className="flex items-center gap-2">
-          {messages.length > 1 && (
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b bg-[#2ca0ff] text-white rounded-t-lg">
+          <div className="flex items-center gap-2">
+            <img
+              src="/assets/robot.png"
+              className="h-5 w-5"
+            />
+            <h3 className="font-semibold">Trợ lý AI</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearChat}
-              className="text-white hover:bg-blue-700 text-xs"
+              onClick={() => {
+                setIsOpen(false)
+              }}
+              className="text-white hover:text-red-500 transition-colors cursor-pointer"
             >
-              Xóa chat
+              <X className="h-4 w-4 " />
             </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setIsOpen(false)
-            }}
-            className="text-white hover:bg-blue-700"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.map((msg, index) => {
-            const isUser = msg.role === "user"
-            const prevMsg = index > 0 ? messages[index - 1] : null
-            const showTime = !prevMsg || 
-              msg.timestamp.getTime() - prevMsg.timestamp.getTime() > 300000 // 5 minutes
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {messages.map((msg, index) => {
+              const isUser = msg.role === "user"
+              const prevMsg = index > 0 ? messages[index - 1] : null
+              const showTime = !prevMsg ||
+                msg.timestamp.getTime() - prevMsg.timestamp.getTime() > 300000 // 5 minutes
 
-            return (
-              <div key={msg.id}>
-                {showTime && (
-                  <div className="text-center text-xs text-gray-400 my-2">
-                    {formatTime(msg.timestamp)}
-                  </div>
-                )}
-                <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-1`}>
-                  <div className={`max-w-[85%] ${isUser ? "items-end" : "items-start"} flex flex-col`}>
-                    {!isUser && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <Bot className="h-3 w-3 text-blue-600" />
-                        <span className="text-xs text-gray-500">Trợ lý AI</span>
-                      </div>
-                    )}
-                    <div
-                      className={`rounded-lg p-3 ${
-                        isUser
-                          ? "bg-blue-600 text-white rounded-br-none"
-                          : "bg-gray-100 text-gray-900 rounded-bl-none"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
-                    </div>
-                    <span
-                      className={`text-xs mt-1 px-2 ${
-                        isUser ? "text-gray-500" : "text-gray-400"
-                      }`}
-                    >
+              return (
+                <div key={msg.id}>
+                  {showTime && (
+                    <div className="text-center text-xs text-gray-400 my-2">
                       {formatTime(msg.timestamp)}
-                    </span>
+                    </div>
+                  )}
+                  <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-1`}>
+                    <div className={`max-w-[85%] ${isUser ? "items-end" : "items-start"} flex flex-col`}>
+                      {!isUser && (
+                        <div className="flex items-center gap-1 mb-1">
+                          <img src="/assets/robot.png" alt=""  className="h-3 w-3 text-blue-600"/>
+                          <span className="text-xs text-gray-500">Trợ lý AI</span>
+                        </div>
+                      )}
+                      <div
+                        className={`rounded-lg p-3 ${isUser
+                            ? "bg-blue-600 text-white rounded-br-none"
+                            : "bg-gray-100 text-gray-900 rounded-bl-none"
+                          }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
+                      </div>
+                      <span
+                        className={`text-xs mt-1 px-2 ${isUser ? "text-gray-500" : "text-gray-400"
+                          }`}
+                      >
+                        {formatTime(msg.timestamp)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+            {isLoading && (
+              <div className="flex justify-start mb-1">
+                <div className="max-w-[85%] flex flex-col items-start">
+                  <div className="flex items-center gap-1 mb-1">
+                    <img src="/assets/robot.png" alt=""  className="h-3 w-3 text-blue-600"/>
+                    <span className="text-xs text-gray-500">Trợ lý AI</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-lg p-3 rounded-bl-none">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      <span className="text-sm text-gray-600">Đang suy nghĩ...</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            )
-          })}
-          {isLoading && (
-            <div className="flex justify-start mb-1">
-              <div className="max-w-[85%] flex flex-col items-start">
-                <div className="flex items-center gap-1 mb-1">
-                  <Bot className="h-3 w-3 text-blue-600" />
-                  <span className="text-xs text-gray-500">Trợ lý AI</span>
-                </div>
-                <div className="bg-gray-100 rounded-lg p-3 rounded-bl-none">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                    <span className="text-sm text-gray-600">Đang suy nghĩ...</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      {/* Input Area */}
-      <div className="p-4 border-t">
-        <div className="flex gap-2">
-          <Input
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                sendMessage()
-              }
-            }}
-            placeholder="Nhập câu hỏi của bạn..."
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button 
-            onClick={sendMessage} 
-            size="sm" 
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={isLoading || !messageInput.trim()}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
             )}
-          </Button>
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+
+        {/* Input Area */}
+        <div className="p-4 border-t">
+          <div className="flex gap-2">
+            <Input
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault()
+                  sendMessage()
+                }
+              }}
+              placeholder="Nhập câu hỏi của bạn..."
+              className="flex-1"
+              disabled={isLoading}
+            />
+            <Button
+              onClick={sendMessage}
+              size="sm"
+              className="bg-[#2ca0ff] hover:bg-blue-700"
+              disabled={isLoading || !messageInput.trim()}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Trợ lý AI có thể mắc lỗi. Vui lòng kiểm tra thông tin quan trọng.
+          </p>
         </div>
-        <p className="text-xs text-gray-500 mt-2 text-center">
-          Trợ lý AI có thể mắc lỗi. Vui lòng kiểm tra thông tin quan trọng.
-        </p>
       </div>
-    </div>
     </>
   )
 }
