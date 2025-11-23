@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, MapPin, Briefcase, DollarSign, Building2, Filter, Flag, Loader2 } from "lucide-react"
+import { Search, MapPin, DollarSign, Building2, Filter, Flag, Loader2 } from "lucide-react"
 import { api, type JobPost } from "@/lib/api"
 import { useSavedJobs } from "@/context/saved-jobs-context"
 
@@ -153,9 +153,9 @@ export default function JobsPage() {
             ? undefined
             : (searchParams.jobType as "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"),
         categoryId: searchParams.categoryId === "all" ? undefined : Number(searchParams.categoryId),
-        minSalary: searchParams.minSalary ? Number(searchParams.minSalary) : undefined,
-        maxSalary: searchParams.maxSalary ? Number(searchParams.maxSalary) : undefined,
-        experience: searchParams.experience || undefined,
+        minSalary: searchParams.minSalary ? Number(searchParams.minSalary)*1000000 : undefined,
+        maxSalary: searchParams.maxSalary ? Number(searchParams.maxSalary)*1000000 : undefined,
+        experience: searchParams.experience === "all" ? undefined : searchParams.experience || undefined,
         jobStatus: "ACCEPTED" as const,
         page: searchParams.page,
         size: searchParams.size,
@@ -308,7 +308,7 @@ export default function JobsPage() {
                 </div>
 
                 <Select value={searchParams.jobType} onValueChange={(value) => handleFilterChange("jobType", value)}>
-                  <SelectTrigger className="w-[180px] ">
+                  <SelectTrigger className="w-[172px] ">
                     <SelectValue placeholder="Loại việc làm" />
                   </SelectTrigger>
                   <SelectContent>
@@ -355,7 +355,7 @@ export default function JobsPage() {
                   value={searchParams.categoryId}
                   onValueChange={(value) => handleFilterChange("categoryId", value)}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[172px]">
                     <SelectValue placeholder="Danh mục" />
                   </SelectTrigger>
                   <SelectContent>
@@ -378,14 +378,53 @@ export default function JobsPage() {
                   </SelectContent>
                 </Select>
 
-
-                <Input
-                  type="text"
-                  placeholder="Số năm kinh nghiệm"
+                {/* Experience Filter */}
+                <Select
                   value={searchParams.experience}
-                  onChange={(e) => setSearchParams((prev) => ({ ...prev, experience: e.target.value }))}
-                  className="w-[180px]"
-                />
+                  onValueChange={(value) => handleFilterChange("experience", value)}
+                >
+                  <SelectTrigger className="w-[172px]">
+                    <SelectValue placeholder="Năm kinh nghiệm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem
+                      value="all"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Tất cả
+                    </SelectItem>
+                    <SelectItem
+                      value="Không yêu cầu"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Không yêu cầu
+                    </SelectItem>
+                    <SelectItem
+                      value="Dưới 1 năm"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Dưới 1 năm
+                    </SelectItem>
+                    <SelectItem
+                      value="1 - 2 năm"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      1 - 2 năm
+                    </SelectItem>
+                    <SelectItem
+                      value="3 - 5 năm"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      3 - 5 năm
+                    </SelectItem>
+                    <SelectItem
+                      value="Trên 5 năm"
+                      className="focus:bg-transparent hover:bg-transparent focus:text-[#1e7efc] hover:text-[#1e7efc]"
+                    >
+                      Trên 5 năm
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </form>
           </CardContent>
@@ -421,7 +460,7 @@ export default function JobsPage() {
                 className="block group h-full"
               >
                 <Card className="h-full flex flex-col justify-between hover:shadow-lg hover:border-primary/50 transition-all duration-200">
-                  <CardHeader className="pb-0 min-h-[120px]">
+                  <CardHeader className="pb-0 min-h-[10px]">
                     <div className="flex items-start justify-between gap-3 h-full">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         {/* Logo */}
@@ -452,10 +491,11 @@ export default function JobsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => toggleSaveJob(job.id, e)}
-                        className={`flex-shrink-0 h-8 w-8 p-0 ${isSaved(job.id)
-                          ? "text-yellow-500 hover:text-yellow-600"
-                          : "text-muted-foreground hover:text-yellow-500"
-                          }`}
+                        className={`flex-shrink-0 h-8 w-8 p-0 ${
+                          isSaved(job.id)
+                            ? "text-yellow-500 hover:text-yellow-600"
+                            : "text-muted-foreground hover:text-yellow-500"
+                        }`}
                       >
                         <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                       </Button>
@@ -513,7 +553,6 @@ export default function JobsPage() {
                               : "Thỏa thuận"}
                       </span>
                     </div>
-                    
                   </CardContent>
                 </Card>
               </Link>

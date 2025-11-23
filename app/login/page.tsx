@@ -32,7 +32,6 @@ export default function LoginPage() {
     try {
       const response = await api.login({ ...formData, platform: "WEB", versionApp: "V1.0.0", deviceToken: "aa" })
 
-      // Store tokens
       localStorage.setItem("token", response.data.accessToken)
       localStorage.setItem("refreshToken", response.data.refreshToken)
       localStorage.setItem("role", response.data.role)
@@ -42,18 +41,19 @@ export default function LoginPage() {
       localStorage.setItem("email", response.data.email)
       localStorage.setItem("phone", response.data.phone)
       console.log("Login successful:", response.data)
-      // Notify other components (e.g., Header) to re-render auth state
       window.dispatchEvent(new Event("auth:changed"))
-
       window.dispatchEvent(new Event("storage"))
 
       if (response.data.role === "ADMIN") {
         localStorage.setItem("isAdmin", "true")
         router.push("/admin/dashboard")
+        router.refresh()
       } else if (response.data.role === "APPLICANT") {
         router.push("/jobs")
+        router.refresh()
       }else if (response.data.role === "EMPLOYER") {
         router.push("/")
+        router.refresh()
       }
     } catch (err: any) {
       setError(err.message || "Đăng nhập thất bại")

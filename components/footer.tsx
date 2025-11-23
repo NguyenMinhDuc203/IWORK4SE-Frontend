@@ -7,7 +7,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo & Description */}
-          <div className="max-w-xs -mt-4.5">
+          <div className="max-w-xs -mt-6">
             <Link href="/" className="block">
               <Image
                 src="/assets/Full_logo_iwork4se_no_background.png"

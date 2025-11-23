@@ -1273,6 +1273,19 @@ export const api = {
     // Use total count as unread count for now (can be enhanced later with isRead field)
     return fetchApi<ApiResponse<number>>(`/notification/user/${userId}/count`)
   },
+
+  // Fetch distinct companies
+  getDistinctCompanies: () =>
+    fetchApi<
+      ApiResponse<
+        Array<{
+          companyName: string
+          industry: string
+          location: string
+          logoUrl: string
+        }>
+      >
+    >("/employer/companies"),
 }
 
 // Message types

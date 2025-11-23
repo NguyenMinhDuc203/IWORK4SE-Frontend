@@ -10,23 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import RotatingText from "@/components/RotatingText"
 import CountUp from "@/components/CountUp"
-import {
-  Search,
-  Briefcase,
-  Building2,
-  Users,
-  Star,
-  MapPin,
-  Clock,
-  DollarSign,
-  ArrowRight,
-  CheckCircle,
-  Loader2,
-  Flag,
-} from "lucide-react"
+import CompanyLogoLoop from "@/components/company-logo-loop"
+import { Search, Briefcase, Building2, Users, MapPin, ArrowRight, CheckCircle, Loader2, Flag } from "lucide-react"
 import { api, type JobPost } from "@/lib/api"
-// import ApiTestComponent from "@/components/api-test" // Removed
-import ClientOnly from "@/components/client-only"
 import { useSavedJobs } from "@/context/saved-jobs-context"
 
 export default function HomePage() {
@@ -253,8 +239,8 @@ export default function HomePage() {
                     rel="noopener noreferrer"
                     className="block group h-full"
                   >
-                    <Card className="h-full flex flex-col justify-between hover:shadow-lg hover:border-primary/50 transition-all duration-200">
-                      <CardHeader className="pb-3 min-h-[120px]">
+                    <Card className="h-full flex flex-col justify-between hover:shadow-lg hover:border-primary/50 transition-all duration-200 gap-0" >
+                      <CardHeader className="min-h-[100px]">
                         <div className="flex items-start justify-between gap-3 h-full">
                           <div className="flex items-start gap-3 flex-1 min-w-0">
                             {/* Logo */}
@@ -286,10 +272,11 @@ export default function HomePage() {
                             variant="ghost"
                             size="sm"
                             onClick={(e) => toggleSaveJob(job.id, e)}
-                            className={`flex-shrink-0 h-8 w-8 p-0 ${isSaved(job.id)
+                            className={`flex-shrink-0 h-8 w-8 p-0 ${
+                              isSaved(job.id)
                                 ? "text-yellow-500 hover:text-yellow-600"
                                 : "text-muted-foreground hover:text-yellow-500"
-                              }`}
+                            }`}
                           >
                             <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                           </Button>
@@ -347,7 +334,6 @@ export default function HomePage() {
                                   : "Thỏa thuận"}
                           </span>
                         </div>
-
                       </CardContent>
 
                       {/* <div className="flex items-center justify-between px-6 pb-4 mt-auto">
@@ -439,23 +425,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((company) => (
-              <Card key={company} className="text-center hover:shadow-lg transition-shadow cursor-pointer">
-                <CardContent className="p-6">
-                  <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <Building2 className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="font-semibold mb-1">TechCorp</h3>
-                  <p className="text-sm text-muted-foreground mb-2">50+ việc làm</p>
-                  <div className="flex items-center justify-center text-yellow-500">
-                    <Star className="h-4 w-4 fill-current" />
-                    <span className="text-sm ml-1">4.9</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <CompanyLogoLoop />
         </div>
       </section>
 
