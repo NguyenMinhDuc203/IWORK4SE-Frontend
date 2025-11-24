@@ -59,7 +59,7 @@ async function refreshAccessToken(): Promise<string | null> {
     }
 
     const data = await response.json()
-    const newToken = data.data.token
+    const newToken = data.data.accessToken || data.data.token
     const newRefreshToken = data.data.refreshToken
 
     if (typeof window !== "undefined") {
@@ -67,6 +67,7 @@ async function refreshAccessToken(): Promise<string | null> {
       localStorage.setItem("refreshToken", newRefreshToken)
     }
 
+    console.log("[v0] Token refreshed successfully and saved to localStorage")
     return newToken
   } catch (error) {
     console.error("[v0] Token refresh failed:", error)
@@ -1288,7 +1289,7 @@ export const api = {
       >
     >("/employer/companies"),
   // Fetch company details by name
-    getCompanyDetailByName: (companyName: string) =>
+  getCompanyDetailByName: (companyName: string) =>
     fetchApi<
       ApiResponse<{
         companyName: string
@@ -1314,9 +1315,7 @@ export const api = {
         totalJobPosts: number
       }>
     >(`/employer/company-detail?companyName=${encodeURIComponent(companyName)}`),
-
 }
-
 
 // Message types
 export interface MessageResponse {

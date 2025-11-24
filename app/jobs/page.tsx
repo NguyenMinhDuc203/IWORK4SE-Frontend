@@ -308,7 +308,7 @@ export default function JobsPage() {
                 </div>
 
                 <Select value={searchParams.jobType} onValueChange={(value) => handleFilterChange("jobType", value)}>
-                  <SelectTrigger className="w-[172px] ">
+                  <SelectTrigger className="w-[193px] ">
                     <SelectValue placeholder="Loại việc làm" />
                   </SelectTrigger>
                   <SelectContent>
@@ -355,7 +355,7 @@ export default function JobsPage() {
                   value={searchParams.categoryId}
                   onValueChange={(value) => handleFilterChange("categoryId", value)}
                 >
-                  <SelectTrigger className="w-[172px]">
+                  <SelectTrigger className="w-[193px]">
                     <SelectValue placeholder="Danh mục" />
                   </SelectTrigger>
                   <SelectContent>
@@ -383,7 +383,7 @@ export default function JobsPage() {
                   value={searchParams.experience}
                   onValueChange={(value) => handleFilterChange("experience", value)}
                 >
-                  <SelectTrigger className="w-[172px]">
+                  <SelectTrigger className="w-[193px]">
                     <SelectValue placeholder="Năm kinh nghiệm" />
                   </SelectTrigger>
                   <SelectContent>
