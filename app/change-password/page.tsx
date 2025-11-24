@@ -7,7 +7,16 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
@@ -22,6 +31,7 @@ export default function ChangePasswordPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,18 +61,35 @@ export default function ChangePasswordPage() {
     setIsLoading(true)
 
     try {
+      const userId = localStorage.getItem("userId")
+      if (!userId) {
+        setError("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.")
+        setIsLoading(false)
+        return
+      }
+
       await api.changePassword({
-        currentPassword,
+        id: userId,
+        oldPassword: currentPassword,
         newPassword,
+        confirmPassword,
       })
 
-      alert("Đổi mật khẩu thành công!")
-      router.push("/dashboard")
+      setShowSuccessModal(true)
+      // Reset form
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
     } catch (error: any) {
       setError(error.message || "Đổi mật khẩu thất bại. Vui lòng kiểm tra lại mật khẩu hiện tại.")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSuccessConfirm = () => {
+    setShowSuccessModal(false)
+
   }
 
   return (
@@ -72,10 +99,6 @@ export default function ChangePasswordPage() {
         <div className="mb-6 text-sm text-gray-600">
           <Link href="/" className="text-primary hover:underline">
             Trang chủ
-          </Link>
-          {" / "}
-          <Link href="/dashboard" className="text-primary hover:underline">
-            Bảng tin
           </Link>
           {" / "}
           <span>Thay đổi mật khẩu</span>
@@ -171,6 +194,47 @@ export default function ChangePasswordPage() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="
+      sm:max-w-md 
+      
+      /* 1. GHI ĐÈ VỊ TRÍ: Đưa lên phía trên thay vì ở giữa */
+      top-[10%] 
+      translate-y-0 
+      
+      /* 2. CHỈNH ANIMATION: Trượt từ tít trên cao xuống */
+      data-[state=open]:slide-in-from-top-[-20%]
+      
+      /* (Tùy chọn) Bo góc đẹp hơn cho kiểu top modal */
+      rounded-3xl
+  ">
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 ring-8 ring-blue-50 animate-in zoom-in-50 duration-300">
+              <CheckCircle2 className="h-10 w-10 text-blue-600" strokeWidth={2.5} />
+            </div>
+
+            <div className="text-center space-y-2 px-4">
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                Đổi mật khẩu thành công!
+              </DialogTitle>
+              <DialogDescription className="text-base text-gray-500">
+                Mật khẩu mới của bạn đã được cập nhật. Bạn có thể sử dụng nó để đăng nhập ngay bây giờ.
+              </DialogDescription>
+            </div>
+
+            <div className="w-full px-4 pt-4">
+              <Button
+                onClick={handleSuccessConfirm}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium h-11 text-base rounded-xl"
+              >
+                Xác nhận
+              </Button>
+            </div>
+
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

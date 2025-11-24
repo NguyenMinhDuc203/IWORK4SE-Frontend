@@ -581,8 +581,10 @@ export const api = {
     }),
 
   changePassword: (data: {
-    currentPassword: string
+    id: string
+    oldPassword: string
     newPassword: string
+    confirmPassword: string
   }) =>
     fetchApi<ApiResponse<any>>("/user/change-pwd", {
       method: "PATCH",
