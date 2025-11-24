@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Building2, MapPin, Mail, Phone, Briefcase, Users, ArrowLeft, Globe } from "lucide-react"
+import { Building2, MapPin, Briefcase, ArrowLeft, Mail, Phone } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { api } from "@/lib/api"
@@ -44,31 +44,31 @@ export default function CompanyDetailPage() {
   const [company, setCompany] = useState<CompanyDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [jobsDisplayCount, setJobsDisplayCount] = useState(4)
 
   const fetchCompanyDetail = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await api.getCompanyDetailByName(companyName);
+      setLoading(true)
+      setError(null)
+      const response = await api.getCompanyDetailByName(companyName)
       if (response.data) {
-        setCompany(response.data);
+        setCompany(response.data)
       } else {
-        setError("Không tìm thấy công ty này");
+        setError("Không tìm thấy công ty này")
       }
-
     } catch (err: any) {
-      console.error("Error fetching company detail:", err);
-
+      console.error("Error fetching company detail:", err)
 
       if (err instanceof ApiError) {
-        setError(err.message);
+        setError(err.message)
       } else {
-        setError("Có lỗi xảy ra khi tải thông tin công ty");
+        setError("Có lỗi xảy ra khi tải thông tin công ty")
       }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
     if (companyName) {
@@ -121,153 +121,93 @@ export default function CompanyDetailPage() {
     )
   }
 
+  // Get all job posts from all employers
+  const allJobs = company.employers.flatMap((employer) =>
+    employer.jobPosts.map((job) => ({ ...job, employerName: `${employer.firstName} ${employer.lastName}` })),
+  )
+
+  const displayedJobs = allJobs.slice(0, jobsDisplayCount)
+
   return (
     <div className="min-h-screen bg-background px-20">
       {/* Back Button */}
-      <div className="container mx-auto px-4 py-6">
-        <Link href="/companies">
-          <Button variant="outline">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Quay lại danh sách công ty
-          </Button>
-        </Link>
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <Link href="/companies">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Quay lại
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Company Hero Section */}
-      <div className="bg-gradient-to-r from-primary/5 to-primary/10 border-b">
-        <div className="container mx-auto px-4 py-12">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Company Logo */}
+      {/* Company Header */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex gap-6 items-start">
+            {/* Logo */}
             <div className="flex-shrink-0">
               {company.logoUrl ? (
-                <div className="w-32 h-32 rounded-lg overflow-hidden bg-white shadow-lg flex items-center justify-center border">
+                <div className="w-24 h-24 rounded-lg overflow-hidden bg-white shadow-md flex items-center justify-center border">
                   <Image
                     src={company.logoUrl || "/placeholder.svg"}
                     alt={`${company.companyName} logo`}
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-contain"
                   />
                 </div>
               ) : (
-                <div className="w-32 h-32 rounded-lg bg-muted flex items-center justify-center shadow-lg">
-                  <Building2 className="w-16 h-16 text-muted-foreground" />
+                <div className="w-24 h-24 rounded-lg bg-muted flex items-center justify-center shadow-md">
+                  <Building2 className="w-12 h-12 text-muted-foreground" />
                 </div>
               )}
             </div>
 
-            {/* Company Info */}
+            {/* Company Info & Actions */}
             <div className="flex-1">
-              <h1 className="text-4xl font-bold mb-3">{company.companyName}</h1>
-
-              <div className="flex flex-wrap gap-6 mb-4">
-                {company.industry && (
-                  <div className="flex items-center text-base text-muted-foreground">
-                    <Briefcase className="w-5 h-5 mr-2 text-primary" />
-                    <span>{company.industry}</span>
-                  </div>
-                )}
-                {company.location && (
-                  <div className="flex items-center text-base text-muted-foreground">
-                    <MapPin className="w-5 h-5 mr-2 text-primary" />
-                    <span>{company.location}</span>
-                  </div>
-                )}
-                <div className="flex items-center text-base text-muted-foreground">
-                  <Users className="w-5 h-5 mr-2 text-primary" />
-                  <span>{company.totalEmployers} người liên hệ</span>
-                </div>
-                <div className="flex items-center text-base text-muted-foreground">
-                  <Globe className="w-5 h-5 mr-2 text-primary" />
-                  <span>{company.totalJobPosts} công việc</span>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-1">{company.companyName}</h1>
+                  <p className="text-muted-foreground text-lg">{company.industry}</p>
                 </div>
               </div>
 
-              {company.description && (
-                <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl">{company.description}</p>
-              )}
+              {/* Location and Field */}
+              <div className="flex flex-wrap gap-6 mb-4">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-blue-600" />
+                  <span className="text-blue-600 font-medium">{company.location}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-blue-600" />
+                  <span className="text-blue-600 font-medium">{company.industry}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Employers & Jobs */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Contact Persons Section */}
-            <section>
-              <h2 className="text-2xl font-bold mb-6 flex items-center">
-                <Users className="w-6 h-6 mr-3 text-primary" />
-                Người liên hệ ({company.employers.length})
-              </h2>
+          {/* Left Column - Job Listings */}
+          <div className="lg:col-span-2">
+            <h2 className="text-2xl font-bold mb-6">Việc đang tuyển ({company.totalJobPosts})</h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {company.employers.map((employer) => (
-                  <Card key={employer.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">
-                            {employer.firstName} {employer.lastName}
-                          </CardTitle>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-2">
-                        {employer.email && (
-                          <div className="flex items-center text-sm">
-                            <Mail className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
-                            <a href={`mailto:${employer.email}`} className="text-primary hover:underline truncate">
-                              {employer.email}
-                            </a>
-                          </div>
-                        )}
-                        {employer.phone && (
-                          <div className="flex items-center text-sm">
-                            <Phone className="w-4 h-4 mr-2 text-primary flex-shrink-0" />
-                            <a href={`tel:${employer.phone}`} className="text-primary hover:underline">
-                              {employer.phone}
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      {employer.jobPosts.length > 0 && (
-                        <div className="pt-2 border-t">
-                          <p className="text-xs text-muted-foreground">{employer.jobPosts.length} công việc đã đăng</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-
-            {/* Job Listings Section */}
-            <section>
-              <h2 className="text-2xl font-bold mb-6 flex items-center">
-                <Briefcase className="w-6 h-6 mr-3 text-primary" />
-                Danh sách công việc ({company.totalJobPosts})
-              </h2>
-
-              <div className="space-y-4">
-                {company.employers.flatMap((employer) =>
-                  employer.jobPosts.map((job) => (
+            {allJobs.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {displayedJobs.map((job) => (
                     <Link key={job.id} href={`/jobs/${job.id}`}>
-                      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <CardTitle className="text-lg text-primary hover:underline">{job.title}</CardTitle>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {employer.firstName} {employer.lastName}
-                              </p>
-                            </div>
+                      <Card className="hover:shadow-lg transition-all cursor-pointer h-full border-l-4 border-l-blue-600">
+                        <CardContent className="p-5">
+                          {/* Job Header */}
+                          <div className="flex gap-3 mb-4">
                             {job.logoUrl && (
-                              <div className="w-12 h-12 rounded ml-4 bg-muted flex-shrink-0 overflow-hidden flex items-center justify-center">
+                              <div className="w-12 h-12 rounded flex-shrink-0 bg-muted flex items-center justify-center overflow-hidden">
                                 <Image
                                   src={job.logoUrl || "/placeholder.svg"}
                                   alt={job.companyName}
@@ -277,63 +217,119 @@ export default function CompanyDetailPage() {
                                 />
                               </div>
                             )}
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
-
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                              <span className="text-muted-foreground">{job.location}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <span className="text-muted-foreground">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-base line-clamp-2 text-blue-600 hover:underline">
+                                {job.title}
+                              </h3>
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {job.minSalary && job.maxSalary
-                                  ? `${(job.minSalary / 1000000).toFixed(0)}tr - ${(job.maxSalary / 1000000).toFixed(0)}tr`
+                                  ? `${(job.minSalary / 1000000).toFixed(0)} - ${(job.maxSalary / 1000000).toFixed(0)} triệu VND`
                                   : "Thỏa thuận"}
-                              </span>
+                              </p>
                             </div>
+                          </div>
+
+                          {/* Location and Tags */}
+                          <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+                            <MapPin className="w-4 h-4 flex-shrink-0" />
+                            <span>{job.location}</span>
+                          </div>
+
+                          {/* Job Details Tags */}
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                              {job.jobType || "Toàn thời gian"}
+                            </span>
+                            {job.experience && (
+                              <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                {job.experience}
+                              </span>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
                     </Link>
-                  )),
+                  ))}
+                </div>
+
+                {jobsDisplayCount < allJobs.length && (
+                  <div className="mt-8 text-center">
+                    <Button
+                      onClick={() => setJobsDisplayCount((prev) => prev + 4)}
+                      variant="outline"
+                      className="w-full py-6 text-blue-600 border-blue-600 hover:bg-blue-50"
+                    >
+                      ▼ Xem thêm việc làm
+                    </Button>
+                  </div>
                 )}
-              </div>
-            </section>
+              </>
+            ) : (
+              <Card className="py-12 text-center">
+                <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Công ty này hiện không có việc tuyển dụng</p>
+              </Card>
+            )}
           </div>
 
-          {/* Right Sidebar */}
-          <div className="space-y-6">
+          {/* Right Column - Company Info */}
+          <div className="space-y-6 mt-14">
+            {/* Company Information Card */}
             <Card>
-              <CardHeader>
-                <CardTitle>Thông tin công ty</CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Thông tin công ty</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Description */}
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Tên công ty</p>
-                  <p className="font-semibold">{company.companyName}</p>
+                  <div className="flex items-start gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Giới thiệu công ty</p>
+                      <p className="text-sm font-medium">{company.description}</p>
+                    </div>
+                  </div>
                 </div>
-                {company.industry && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Ngành nghề</p>
-                    <p className="font-semibold">{company.industry}</p>
+
+                {company.employers && company.employers.length > 0 && (
+                  <div className="border-t pt-4">
+                    <p className="text-xs font-semibold text-muted-foreground mb-3">Người liên hệ</p>
+                    <div className="space-y-4">
+                      {company.employers.map((employer, index) => (
+                        <div key={employer.id} className="pb-3 last:pb-0 last:border-b-0 border-b">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">
+                                {employer.firstName} {employer.lastName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="w-4 h-4 flex-shrink-0" />
+                              <a href={`mailto:${employer.email}`} className="hover:text-blue-600 break-all">
+                                {employer.email}
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Phone className="w-4 h-4 flex-shrink-0" />
+                              <a href={`tel:${employer.phone}`} className="hover:text-blue-600">
+                                {employer.phone}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-                {company.location && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Địa chỉ</p>
-                    <p className="font-semibold">{company.location}</p>
+
+                {/* Office Locations */}
+                <div className="border-t pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground mb-3">Danh sách chi nhánh:</p>
+                  <div className="space-y-2">
+                    <div className="text-sm">
+                      <p className="font-medium">Địa chỉ tại Việt Nam:</p>
+                      <p className="text-muted-foreground">{company.location}</p>
+                    </div>
                   </div>
-                )}
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Tổng số công việc</p>
-                  <p className="font-semibold">{company.totalJobPosts}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Người liên hệ</p>
-                  <p className="font-semibold">{company.totalEmployers}</p>
                 </div>
               </CardContent>
             </Card>

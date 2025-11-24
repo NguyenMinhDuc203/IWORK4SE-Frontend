@@ -153,7 +153,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background px-20">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">85%</p>
-                  <p className="text-sm text-muted-foreground">H�� sơ hoàn thiện</p>
+                  <p className="text-sm text-muted-foreground">Hồ sơ hoàn thiện</p>
                 </div>
               </div>
             </CardContent>

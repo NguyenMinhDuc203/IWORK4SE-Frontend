@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
 import "./LogoLoop.css"
 
 export type LogoItem =
@@ -309,7 +310,7 @@ export const LogoLoop = React.memo<LogoLoopProps>(
           </span>
         ) : (
           <img
-            src={(item as any).src}
+            src={(item as any).src || "/placeholder.svg"}
             srcSet={(item as any).srcSet}
             sizes={(item as any).sizes}
             width={(item as any).width}
@@ -325,15 +326,9 @@ export const LogoLoop = React.memo<LogoLoopProps>(
           ? ((item as any).ariaLabel ?? (item as any).title)
           : ((item as any).alt ?? (item as any).title)
         const itemContent = (item as any).href ? (
-          <a
-            className="logoloop__link"
-            href={(item as any).href}
-            aria-label={itemAriaLabel || "logo link"}
-            target="_blank"
-            rel="noreferrer noopener"
-          >
+          <Link className="logoloop__link" href={(item as any).href} aria-label={itemAriaLabel || "logo link"}>
             {content}
-          </a>
+          </Link>
         ) : (
           content
         )

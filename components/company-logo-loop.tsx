@@ -34,7 +34,7 @@ export default function CompanyLogoLoop() {
           src: company.logoUrl,
           alt: company.companyName,
           title: company.companyName,
-          href: "#",
+          href: `/companies/${encodeURIComponent(company.companyName)}`,
         }))
 
         setLogos(logoItems)
