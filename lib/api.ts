@@ -1283,10 +1283,40 @@ export const api = {
           industry: string
           location: string
           logoUrl: string
+          description: string
         }>
       >
     >("/employer/companies"),
+  // Fetch company details by name
+    getCompanyDetailByName: (companyName: string) =>
+    fetchApi<
+      ApiResponse<{
+        companyName: string
+        industry: string
+        location: string
+        logoUrl: string
+        description: string
+        employers: Array<{
+          id: string
+          firstName: string
+          lastName: string
+          email: string
+          phone: string
+          companyName: string
+          location: string
+          industry: string
+          description: string
+          logoUrl: string
+          userStatus: string
+          jobPosts: JobPost[]
+        }>
+        totalEmployers: number
+        totalJobPosts: number
+      }>
+    >(`/employer/company-detail?companyName=${encodeURIComponent(companyName)}`),
+
 }
+
 
 // Message types
 export interface MessageResponse {

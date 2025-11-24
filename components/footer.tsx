@@ -3,9 +3,9 @@ import { Briefcase, Mail, Phone, MapPin } from "lucide-react"
 import Image from "next/image"
 export function Footer() {
   return (
-    <footer className="bg-muted/50 border-t">
+    <footer className="bg-muted/50 border-t ">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 px-20 justify-items-center">
           {/* Logo & Description */}
           <div className="max-w-xs -mt-6">
             <Link href="/" className="block">

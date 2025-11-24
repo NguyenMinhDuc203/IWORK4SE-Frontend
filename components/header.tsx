@@ -316,7 +316,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-30">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-20">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -589,7 +589,7 @@ export function Header() {
                   </Button>
 
                   {isUserDropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-96 bg-background border rounded-lg shadow-lg">
+                    <div className="absolute left-0 mt-2 w-70 bg-background border rounded-lg shadow-lg ">
                       <div className="p-4">
                         {/* User info header */}
                         <div className="flex items-center gap-3 mb-4">

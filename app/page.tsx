@@ -95,11 +95,11 @@ export default function HomePage() {
     return salary.toLocaleString()
   }
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen px-20">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-background to-accent/5 py-20">
+      <section className="bg-gradient-to-br from-primary/5 via-background to-accent/5 py-20 ">
         <div className="container mx-auto px-4">
-          <div className="text-center max-w-4xl mx-auto">
+          <div className="text-center max-w-4xl mx-auto ">
             <div className="flex flex-col items-center justify-start -pt-20 md:pt-32 ml-15 mb-30">
               <h1 className="text-4xl md:text-6xl font-bold text-foreground flex items-baseline flex-wrap gap-x-3 text-center -mt-35">
                 <span>Tìm việc làm IT</span>
