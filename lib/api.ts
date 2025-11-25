@@ -33,23 +33,23 @@ async function refreshAccessToken(): Promise<string | null> {
     const refreshToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null
 
     if (!refreshToken) {
-      // No refresh token, redirect to login
       if (typeof window !== "undefined") {
         window.location.href = "/login"
       }
       return null
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${API_BASE_URL}/auth/refresh-token?refreshToken=${encodeURIComponent(refreshToken)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-      body: JSON.stringify(refreshToken),
-    })
+    )
 
     if (!response.ok) {
-      // Refresh failed, redirect to login
       if (typeof window !== "undefined") {
         localStorage.removeItem("token")
         localStorage.removeItem("refreshToken")
@@ -59,12 +59,17 @@ async function refreshAccessToken(): Promise<string | null> {
     }
 
     const data = await response.json()
-    const newToken = data.data.accessToken || data.data.token
-    const newRefreshToken = data.data.refreshToken
+    const newToken = data.accessToken
+    const newRefreshToken = data.refreshToken
 
     if (typeof window !== "undefined") {
       localStorage.setItem("token", newToken)
       localStorage.setItem("refreshToken", newRefreshToken)
+      if (data.userId) localStorage.setItem("userId", data.userId)
+      if (data.role) localStorage.setItem("role", data.role)
+      if (data.fullName) localStorage.setItem("fullName", data.fullName)
+      if (data.email) localStorage.setItem("email", data.email)
+      if (data.phone) localStorage.setItem("phone", data.phone)
     }
 
     console.log("[v0] Token refreshed successfully and saved to localStorage")
@@ -535,9 +540,8 @@ export const api = {
     }),
 
   refreshToken: (refreshToken: string) =>
-    fetchApi<ApiResponse<{ token: string; refreshToken: string }>>("/auth/refresh-token", {
+    fetchApi<any>(`/auth/refresh-token?refreshToken=${encodeURIComponent(refreshToken)}`, {
       method: "POST",
-      body: JSON.stringify(refreshToken),
     }),
 
   logout: () =>
@@ -1239,7 +1243,7 @@ export const api = {
 
   // AI Chat APIs
   sendAIMessage: (message: string, conversationHistory?: string) =>
-    fetchApi<AIChatResponse | ApiResponse<AIChatResponse>>("/api/ai-chat/send", {
+    fetchApi<any | ApiResponse<any>>("/api/ai-chat/send", {
       method: "POST",
       body: JSON.stringify({ message, conversationHistory }),
     }),
