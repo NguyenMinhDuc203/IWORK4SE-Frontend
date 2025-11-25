@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { 
-  Briefcase, 
+import {
+  Briefcase,
   Search,
   Filter,
   Eye,
@@ -44,7 +44,7 @@ export default function AdminJobsPage() {
         page: currentPage,
         size: 10
       })
-      
+
       setJobs(response.data.content || [])
       setTotalPages(response.data.totalPages || 0)
     } catch (error) {
@@ -101,7 +101,7 @@ export default function AdminJobsPage() {
   })
 
   return (
-    <div className="space-y-6 px-20">
+    <div className="space-y-6 px-20 py-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Quản lý việc làm</h1>
@@ -164,16 +164,16 @@ export default function AdminJobsPage() {
                   <div className="flex-1">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-primary/10 flex items-center justify-center">
-                                                {job.logoUrl ? (
-                                                  <img
-                                                    src={job.logoUrl || "/placeholder.svg"}
-                                                    alt={job.companyName || "Company logo"}
-                                                    className="w-full h-full object-contain"
-                                                  />
-                                                ) : (
-                                                  <Building2 className="h-6 w-6 text-primary" />
-                                                )}
-                                              </div>
+                        {job.logoUrl ? (
+                          <img
+                            src={job.logoUrl || "/placeholder.svg"}
+                            alt={job.companyName || "Company logo"}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <Building2 className="h-6 w-6 text-primary" />
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
                           {job.title}
@@ -181,7 +181,7 @@ export default function AdminJobsPage() {
                         <p className="text-gray-600 mb-2">
                           {job.companyName || job.employerName}
                         </p>
-                        
+
                         <div className="flex flex-wrap gap-4 text-sm text-gray-500 mb-3">
                           <div className="flex items-center">
                             <MapPin className="h-4 w-4 mr-1" />
@@ -212,7 +212,7 @@ export default function AdminJobsPage() {
 
                   <div className="flex flex-col items-end gap-3 ml-4">
                     {getJobStatusBadge(job.jobStatus)}
-                    
+
                     <div className="flex gap-2">
                       <Link href={`/jobs/${job.id}`} target="_blank">
                         <Button variant="outline" size="sm">
@@ -220,7 +220,7 @@ export default function AdminJobsPage() {
                           Xem
                         </Button>
                       </Link>
-                      
+
                       {job.jobStatus === "PENDING" && (
                         <div className="flex gap-1">
                           <Button
