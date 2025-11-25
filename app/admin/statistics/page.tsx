@@ -735,7 +735,7 @@ export default function AdminStatisticsPage() {
     }))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-20">
       {/* Header */}
       <div className="flex justify-between items-center">
       <div>

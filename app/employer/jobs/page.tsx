@@ -83,7 +83,7 @@ export default function EmployerJobsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 px-20">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Quản lý việc làm</h1>
         <Link href="/employer/jobs/create">

@@ -167,10 +167,11 @@ export default function CreateJobPage() {
                     <SelectValue placeholder="Chọn kinh nghiệm" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="<1 năm">Dưới 1 năm</SelectItem>
-                    <SelectItem value="1-3 năm">1-3 năm</SelectItem>
+                    <SelectItem value="Không yêu cầu">Không yêu cầu</SelectItem>
+                    <SelectItem value="Dưới 1 năm">Dưới 1 năm</SelectItem>
+                    <SelectItem value="1-2 năm">1-2 năm</SelectItem>
                     <SelectItem value="3-5 năm">3-5 năm</SelectItem>
-                    <SelectItem value=">5 năm">Trên 5 năm</SelectItem>
+                    <SelectItem value="Trên 5 năm">Trên 5 năm</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

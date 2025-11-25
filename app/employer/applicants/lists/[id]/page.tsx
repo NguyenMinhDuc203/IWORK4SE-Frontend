@@ -98,7 +98,7 @@ export default function ApplicantListDetailPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 px-20">
       <div className="max-w-6xl mx-auto">
         <Link href="/employer/applicants/lists" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4">
           <ArrowLeft className="h-4 w-4" />

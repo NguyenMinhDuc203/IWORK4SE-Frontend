@@ -44,7 +44,7 @@ export default function CreateApplicantListPage() {
         listName: form.listName,
         description: form.description || undefined,
       })
-      
+
       // Redirect to lists page
       router.push("/employer/applicants/lists")
     } catch (e: any) {
@@ -55,14 +55,18 @@ export default function CreateApplicantListPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto py-8">
+      <Link href="/employer/applicants" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4 px-20">
+        <ArrowLeft className="h-4 w-4" />
+        Quay lại Quản lý Ứng viên
+      </Link>
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <Link href="/employer/applicants" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4">
+          {/* <Link href="/employer/applicants" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-4">
             <ArrowLeft className="h-4 w-4" />
             Quay lại Quản lý Ứng viên
-          </Link>
+          </Link> */}
           <h1 className="text-3xl font-bold mb-2">Tạo Danh sách Ứng viên Mới</h1>
           <p className="text-gray-600">Tạo danh sách để tổ chức và quản lý ứng viên theo từng vị trí hoặc dự án</p>
         </div>
