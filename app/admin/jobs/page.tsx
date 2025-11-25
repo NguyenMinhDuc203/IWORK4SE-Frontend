@@ -163,9 +163,17 @@ export default function AdminJobsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Building2 className="h-6 w-6 text-blue-600" />
-                      </div>
+                      <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-primary/10 flex items-center justify-center">
+                                                {job.logoUrl ? (
+                                                  <img
+                                                    src={job.logoUrl || "/placeholder.svg"}
+                                                    alt={job.companyName || "Company logo"}
+                                                    className="w-full h-full object-contain"
+                                                  />
+                                                ) : (
+                                                  <Building2 className="h-6 w-6 text-primary" />
+                                                )}
+                                              </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
                           {job.title}
@@ -195,9 +203,9 @@ export default function AdminJobsPage() {
                           </div>
                         </div>
 
-                        <p className="text-gray-600 text-sm line-clamp-2">
+                        {/* <p className="text-gray-600 text-sm line-clamp-2">
                           {job.description}
-                        </p>
+                        </p> */}
                       </div>
                     </div>
                   </div>
