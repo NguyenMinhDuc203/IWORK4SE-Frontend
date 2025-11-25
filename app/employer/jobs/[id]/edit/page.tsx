@@ -1,12 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { RichTextEditor } from "@/components/rich-text-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2 } from "lucide-react"
@@ -16,7 +18,7 @@ export default function EditJobPage() {
   const router = useRouter()
   const params = useParams()
   const jobId = params.id as string
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingJob, setIsLoadingJob] = useState(true)
   const [error, setError] = useState("")
@@ -55,7 +57,7 @@ export default function EditJobPage() {
       const res = await api.getJobById(jobId)
       const jobData = res.data
       setJob(jobData)
-      
+
       // Populate form with job data
       setForm({
         title: jobData.title || "",
@@ -86,16 +88,15 @@ export default function EditJobPage() {
       } catch (e) {
         // Retry once after 2 seconds
         console.log("Retrying getAllJobCategories...")
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        await new Promise((resolve) => setTimeout(resolve, 2000))
         resAll = await api.getAllJobCategories()
       }
-      
+
       if (resAll.data && resAll.data.length > 0) {
         setCategories(resAll.data)
       } else {
         throw new Error("No categories returned")
       }
-      
     } catch (e) {
       console.log("getAllJobCategories failed, trying paginated endpoint...")
       try {
@@ -119,7 +120,7 @@ export default function EditJobPage() {
           { id: 7, categoryName: "Data Scientist", description: "", createAt: "", updateAt: "" },
           { id: 8, categoryName: "AI Engineer", description: "", createAt: "", updateAt: "" },
           { id: 9, categoryName: "QA Engineer", description: "", createAt: "", updateAt: "" },
-          { id: 10, categoryName: "Project Manager", description: "", createAt: "", updateAt: "" }
+          { id: 10, categoryName: "Project Manager", description: "", createAt: "", updateAt: "" },
         ])
       }
     } finally {
@@ -131,23 +132,23 @@ export default function EditJobPage() {
     e.preventDefault()
     setIsLoading(true)
     setError("")
-    
+
     // Validate jobId exists
     if (!jobId) {
       setError("ID tin tuyển dụng không hợp lệ")
       setIsLoading(false)
       return
     }
-    
+
     try {
       console.log("Updating job with ID:", jobId)
       const employerId = localStorage.getItem("userId") || ""
-      
+
       // Try to update job post with retry mechanism
       let jobUpdated = false
       let retryCount = 0
       const maxRetries = 2
-      
+
       while (!jobUpdated && retryCount < maxRetries) {
         try {
           await api.updateJobPost({
@@ -170,13 +171,13 @@ export default function EditJobPage() {
           if (retryCount < maxRetries) {
             console.log(`Retry ${retryCount} for updateJobPost...`)
             // Wait 3 seconds before retry
-            await new Promise(resolve => setTimeout(resolve, 3000))
+            await new Promise((resolve) => setTimeout(resolve, 3000))
           } else {
             throw error
           }
         }
       }
-      
+
       if (jobUpdated) {
         router.push("/employer/jobs")
       }
@@ -203,10 +204,10 @@ export default function EditJobPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold mb-2">Không tìm thấy việc làm</h2>
-          <p className="text-muted-foreground mb-4">Tin tuyển dụng này không tồn tại hoặc bạn không có quyền chỉnh sửa.</p>
-          <Button onClick={() => router.push("/employer/jobs")}>
-            Quay lại danh sách
-          </Button>
+          <p className="text-muted-foreground mb-4">
+            Tin tuyển dụng này không tồn tại hoặc bạn không có quyền chỉnh sửa.
+          </p>
+          <Button onClick={() => router.push("/employer/jobs")}>Quay lại danh sách</Button>
         </div>
       </div>
     )
@@ -228,32 +229,31 @@ export default function EditJobPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Tiêu đề</Label>
-              <Input 
-                id="title" 
-                value={form.title} 
-                onChange={(e) => setForm({ ...form, title: e.target.value })} 
-                required 
+              <Input
+                id="title"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả công việc</Label>
-              <Textarea 
-                id="description" 
-                value={form.description} 
-                onChange={(e) => setForm({ ...form, description: e.target.value })} 
-                required 
+              <RichTextEditor
+                value={form.description}
+                onChange={(value) => setForm({ ...form, description: value })}
+                placeholder="Mô tả chi tiết về công việc..."
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="jobPosition">Vị trí công việc</Label>
-                <Input 
-                  id="jobPosition" 
-                  value={form.jobPosition} 
-                  onChange={(e) => setForm({ ...form, jobPosition: e.target.value })} 
-                  required 
+                <Input
+                  id="jobPosition"
+                  value={form.jobPosition}
+                  onChange={(e) => setForm({ ...form, jobPosition: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -275,35 +275,35 @@ export default function EditJobPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="location">Địa điểm làm việc</Label>
-                <Input 
-                  id="location" 
-                  value={form.location} 
-                  onChange={(e) => setForm({ ...form, location: e.target.value })} 
-                  required 
+                <Input
+                  id="location"
+                  value={form.location}
+                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="minSalary">Lương tối thiểu</Label>
-                <Input 
-                  id="minSalary" 
-                  type="number" 
-                  step={100000} 
-                  min={0} 
-                  value={form.minSalary} 
-                  onChange={(e) => setForm({ ...form, minSalary: Number(e.target.value) })} 
-                  required 
+                <Input
+                  id="minSalary"
+                  type="number"
+                  step={100000}
+                  min={0}
+                  value={form.minSalary}
+                  onChange={(e) => setForm({ ...form, minSalary: Number(e.target.value) })}
+                  required
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="maxSalary">Lương tối đa</Label>
-                <Input 
-                  id="maxSalary" 
-                  type="number" 
-                  step={100000} 
-                  min={0} 
-                  value={form.maxSalary} 
-                  onChange={(e) => setForm({ ...form, maxSalary: Number(e.target.value) })} 
-                  required 
+                <Input
+                  id="maxSalary"
+                  type="number"
+                  step={100000}
+                  min={0}
+                  value={form.maxSalary}
+                  onChange={(e) => setForm({ ...form, maxSalary: Number(e.target.value) })}
+                  required
                 />
               </div>
             </div>
@@ -311,13 +311,13 @@ export default function EditJobPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="vacancies">Số lượng tuyển</Label>
-                <Input 
-                  id="vacancies" 
-                  type="number" 
-                  min={1} 
-                  value={form.vacancies} 
-                  onChange={(e) => setForm({ ...form, vacancies: Number(e.target.value) })} 
-                  required 
+                <Input
+                  id="vacancies"
+                  type="number"
+                  min={1}
+                  value={form.vacancies}
+                  onChange={(e) => setForm({ ...form, vacancies: Number(e.target.value) })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -343,7 +343,9 @@ export default function EditJobPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
-                      <SelectItem key={c.id} value={String(c.id)}>{c.categoryName}</SelectItem>
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.categoryName}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -352,7 +354,13 @@ export default function EditJobPage() {
 
             <div className="flex gap-4">
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin"/> Đang cập nhật...</>) : "Cập nhật tin"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Đang cập nhật...
+                  </>
+                ) : (
+                  "Cập nhật tin"
+                )}
               </Button>
               <Button type="button" variant="outline" onClick={() => router.push("/employer/jobs")}>
                 Hủy
