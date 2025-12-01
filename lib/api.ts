@@ -256,7 +256,7 @@ export interface User {
   email: string
   userName: string
   userType: "APPLICANT" | "EMPLOYER"
-  status: "ACTIVE" | "INACTIVE" | "PENDING"
+  status: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED" | "PENDING"
   createdAt: string
   updatedAt: string
 }
@@ -273,7 +273,7 @@ export interface JobPost {
   postedDate: string
   closingDate: string
   vacancies: number
-  jobStatus: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
+  jobStatus: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED" | "DELETED"
   jobType: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
   updateAt: string
   employerId: string
@@ -436,7 +436,7 @@ export interface ApplicantDocument {
   birthday: string
   phone: string
   gender: "MALE" | "FEMALE"
-  userStatus: "ACTIVE" | "INACTIVE" | "PENDING"
+  userStatus: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED" | "PENDING"
   createAt: string
   updateAt: string
   yearsOfExperience: number
@@ -461,7 +461,7 @@ export interface ApplicantSearchRequest {
   major?: string
   university?: string
   gender?: "MALE" | "FEMALE"
-  userStatus?: "ACTIVE" | "INACTIVE" | "PENDING"
+  userStatus?: "ACTIVE" | "INACTIVE" | "BANNED" | "DELETED" | "PENDING"
   savedApplicantListId?: string
   page?: number
   size?: number
@@ -597,6 +597,17 @@ export const api = {
 
   confirmEmail: (email: string, secretCode: string) =>
     fetchApi<ApiResponse<any>>(`/user/confirm-email?email=${email}&secretCode=${secretCode}`),
+
+  // User activation
+  requestActivation: (userId: string) =>
+    fetchApi<ApiResponse<any>>(`/user/request-activation?userId=${userId}`, {
+      method: "POST",
+    }),
+
+  approveActivation: (userId: string) =>
+    fetchApi<ApiResponse<any>>(`/user/approve-activation?userId=${userId}`, {
+      method: "POST",
+    }),
 
   // Job Posts
   getJobs: (params?: {
@@ -1061,7 +1072,7 @@ export const api = {
 
   searchJobPosts: (params: {
     keywords?: string
-    jobStatus?: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED"
+    jobStatus?: "ACCEPTED" | "PENDING" | "REJECTED" | "EXPIRED" | "DELETED"
     jobType?: "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"
     location?: string
     minSalary?: number

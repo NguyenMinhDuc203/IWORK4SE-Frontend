@@ -113,6 +113,8 @@ export default function AdminDashboard() {
         return <Badge variant="destructive">Từ chối</Badge>
       case "EXPIRED":
         return <Badge variant="outline" className="bg-gray-100 text-gray-800">Hết hạn</Badge>
+      case "DELETED":
+        return <Badge variant="outline" className="bg-gray-300 text-gray-800">Đã xóa</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
