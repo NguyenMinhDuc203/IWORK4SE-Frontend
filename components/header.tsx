@@ -28,6 +28,7 @@ import {
   Edit,
   ChevronDown,
   BarChart3,
+  Shield,
 } from "lucide-react"
 
 export function Header() {
@@ -44,6 +45,8 @@ export function Header() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
   const [stompClient, setStompClient] = useState<Client | null>(null)
+  const [userStatus, setUserStatus] = useState<"ACTIVE" | "INACTIVE" | "BANNED" | "DELETED" | "PENDING" | null>(null)
+  const [isRequestingActivation, setIsRequestingActivation] = useState(false)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
@@ -58,14 +61,24 @@ export function Header() {
 
       if (userTypeFromStorage === "EMPLOYER") {
         const response = await api.getEmployerById(userId)
-        if (response.data && (response.data as any).logoUrl) {
-          setAvatarUrl((response.data as any).logoUrl)
+        if (response.data) {
+          if ((response.data as any).logoUrl) {
+            setAvatarUrl((response.data as any).logoUrl)
+          }
+          if ((response.data as any).userStatus) {
+            setUserStatus((response.data as any).userStatus)
+          }
         }
       } else if (userTypeFromStorage === "APPLICANT") {
         const response = await api.getApplicantById(userId)
         // Applicant có thể có avatarUrl hoặc profilePicture trong tương lai
-        if (response.data && (response.data as any).avatarUrl) {
-          setAvatarUrl((response.data as any).avatarUrl)
+        if (response.data) {
+          if ((response.data as any).avatarUrl) {
+            setAvatarUrl((response.data as any).avatarUrl)
+          }
+          if ((response.data as any).userStatus) {
+            setUserStatus((response.data as any).userStatus)
+          }
         }
       }
       // ADMIN không có avatar riêng
@@ -104,11 +117,12 @@ export function Header() {
 
     if (fullName) setUserName(fullName)
 
-    // Load avatar if logged in (not for ADMIN)
+    // Load avatar & status if logged in (not for ADMIN)
     if (token && userTypeFromStorage && userTypeFromStorage !== "ADMIN") {
       loadUserAvatar()
     } else {
       setAvatarUrl(null)
+      setUserStatus(null)
     }
   }
 
@@ -326,8 +340,25 @@ export function Header() {
     setIsLoggedIn(false)
     setUserType(null)
     setAvatarUrl(null)
+    setUserStatus(null)
     window.dispatchEvent(new Event("auth:changed"))
     window.location.href = "/"
+  }
+
+  const handleRequestActivation = async () => {
+    const userId = localStorage.getItem("userId")
+    if (!userId) return
+
+    setIsRequestingActivation(true)
+    try {
+      await api.requestActivation(userId)
+      alert("Yêu cầu kích hoạt tài khoản đã được gửi đến admin. Vui lòng chờ phê duyệt.")
+    } catch (error: any) {
+      console.error("Error requesting activation:", error)
+      alert(error?.message || "Không thể gửi yêu cầu kích hoạt. Vui lòng thử lại sau.")
+    } finally {
+      setIsRequestingActivation(false)
+    }
   }
 
   const getInitial = (name: string) => {
@@ -447,6 +478,20 @@ export function Header() {
                       </Button>
                     </Link>
                   </>
+                )}
+
+                {/* Nút Kích hoạt cho user INACTIVE (ứng viên / nhà tuyển dụng) */}
+                {userStatus === "INACTIVE" && (userType === "APPLICANT" || userType === "EMPLOYER") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRequestActivation}
+                    disabled={isRequestingActivation}
+                    className="text-sm font-medium text-orange-600 border-orange-600 hover:bg-orange-50"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    {isRequestingActivation ? "Đang gửi..." : "Kích hoạt"}
+                  </Button>
                 )}
 
                 <div className="relative" ref={notificationRef}>

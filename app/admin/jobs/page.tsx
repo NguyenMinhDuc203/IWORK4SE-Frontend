@@ -79,6 +79,8 @@ export default function AdminJobsPage() {
         return <Badge variant="destructive">Từ chối</Badge>
       case "EXPIRED":
         return <Badge variant="outline" className="bg-gray-100 text-gray-800">Hết hạn</Badge>
+      case "DELETED":
+        return <Badge variant="outline" className="bg-gray-300 text-gray-800 line-through">Đã xóa</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -133,6 +135,7 @@ export default function AdminJobsPage() {
                 <SelectItem value="ACCEPTED">Đã duyệt</SelectItem>
                 <SelectItem value="REJECTED">Từ chối</SelectItem>
                 <SelectItem value="EXPIRED">Hết hạn</SelectItem>
+                <SelectItem value="DELETED">Đã xóa</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={handleSearch} className="w-full sm:w-auto">
@@ -263,6 +266,12 @@ export default function AdminJobsPage() {
                             <DropdownMenuItem onClick={() => handleStatusChange(job.id, "EXPIRED")}>
                               <Clock className="h-4 w-4 mr-2" />
                               Đặt thành Hết hạn
+                            </DropdownMenuItem>
+                          )}
+                          {job.jobStatus !== "DELETED" && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(job.id, "DELETED")}>
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Đặt thành Đã xóa
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
