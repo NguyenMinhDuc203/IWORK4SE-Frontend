@@ -11,26 +11,7 @@ import { api, type NotificationResponse } from "@/lib/api"
 import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 
-import {
-  Search,
-  User,
-  Bell,
-  Menu,
-  X,
-  Building2,
-  Users,
-  LogOut,
-  FileText,
-  Eye,
-  Lock,
-  Heart,
-  Briefcase,
-  Edit,
-  ChevronDown,
-  BarChart3,
-  Shield,
-} from "lucide-react"
-
+import { Search, Bell, Menu, X, ChevronDown, Shield } from "lucide-react"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -435,6 +416,15 @@ export function Header() {
                         Quản lý Ứng viên
                       </Button>
                     </Link>
+                    <Link href="/messages">
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                        size="sm"
+                      >
+                        Tin nhắn
+                      </Button>
+                    </Link>
                   </>
                 )}
 
@@ -485,6 +475,15 @@ export function Header() {
                         Thống kê
                       </Button>
                     </Link>
+                    <Link href="/messages">
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+                        size="sm"
+                      >
+                        Tin nhắn
+                      </Button>
+                    </Link>
                   </>
                 )}
 
@@ -495,7 +494,7 @@ export function Header() {
                     size="sm"
                     onClick={handleRequestActivation}
                     disabled={isRequestingActivation}
-                    className="text-sm font-medium text-orange-600 border-orange-600 hover:bg-orange-50"
+                    className="text-sm font-medium text-orange-600 border-orange-600 hover:bg-orange-50 bg-transparent"
                   >
                     <Shield className="h-4 w-4 mr-2" />
                     {isRequestingActivation ? "Đang gửi..." : "Kích hoạt"}
@@ -1047,6 +1046,13 @@ export function Header() {
                       >
                         Quản lý việc làm
                       </Link>
+                      <Link
+                        href="/messages"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Tin nhắn
+                      </Link>
                     </>
                   )}
 
@@ -1086,6 +1092,13 @@ export function Header() {
                         onClick={() => setIsMenuOpen(false)}
                       >
                         Thống kê
+                      </Link>
+                      <Link
+                        href="/messages"
+                        className="block px-4 py-2 text-sm font-medium hover:bg-muted rounded-md"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Tin nhắn
                       </Link>
                     </>
                   )}
