@@ -384,6 +384,12 @@ export function Header() {
             >
               Công ty
             </Link>
+            <Link
+              href="/messages"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors mr-8"
+            >
+              Tin nhắn
+            </Link>
 
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
@@ -488,7 +494,7 @@ export function Header() {
                 )}
 
                 {/* Nút Kích hoạt cho user INACTIVE (ứng viên / nhà tuyển dụng) */}
-                {userStatus === "INACTIVE" && (userType === "APPLICANT" || userType === "EMPLOYER") && (
+                {/* {userStatus === "INACTIVE" && (userType === "APPLICANT" || userType === "EMPLOYER") && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -499,7 +505,7 @@ export function Header() {
                     <Shield className="h-4 w-4 mr-2" />
                     {isRequestingActivation ? "Đang gửi..." : "Kích hoạt"}
                   </Button>
-                )}
+                )} */}
 
                 <div className="relative" ref={notificationRef}>
                   <Button
@@ -652,7 +658,7 @@ export function Header() {
                   </Button>
 
                   {isUserDropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-70 bg-background border rounded-lg shadow-lg ">
+                    <div className="absolute left-0 mt-2 w-60 bg-background border rounded-lg shadow-lg ">
                       <div className="p-4">
                         {/* User info header */}
                         <div className="flex items-center gap-3 mb-4">

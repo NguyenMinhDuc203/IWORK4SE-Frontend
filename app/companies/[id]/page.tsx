@@ -10,6 +10,7 @@ import { Building2, MapPin, Briefcase, ArrowLeft, Mail, Phone } from "lucide-rea
 import Link from "next/link"
 import Image from "next/image"
 import { api } from "@/lib/api"
+import { EmployerChatButton } from "@/components/employer-chat-button"
 
 interface EmployerWithJobs {
   id: string
@@ -314,6 +315,12 @@ export default function CompanyDetailPage() {
                                 {employer.phone}
                               </a>
                             </div>
+                            {/* Chat Button for Applicant Users */}
+                            <EmployerChatButton
+                              employerId={employer.id}
+                              employerName={`${employer.firstName} ${employer.lastName}`}
+                              employerPhone={employer.phone}
+                            />
                           </div>
                         </div>
                       ))}

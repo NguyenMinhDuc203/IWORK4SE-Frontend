@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Search, Send, ChevronLeft, MessageCircle, ImageIcon, Loader2, Trash2, Clock } from "lucide-react"
 import { api, type ConversationResponse, type MessageResponse } from "@/lib/api"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,7 @@ interface ChatUser {
 
 export default function MessagesPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // --- STATE ---
   const [conversations, setConversations] = useState<ConversationResponse[]>([])
@@ -123,6 +124,25 @@ export default function MessagesPage() {
     loadConversations()
     loadAdminUsers()
   }, [])
+
+useEffect(() => {
+    const conversationIdParam = searchParams.get("conversationId")
+
+    // Chỉ chạy khi CÓ param và danh sách hội thoại đã load xong
+    if (conversationIdParam && conversations.length > 0) {
+      const targetId = Number(conversationIdParam)
+      const conversation = conversations.find((c) => c.id === targetId)
+
+      if (conversation) {
+        // 1. Set hội thoại được chọn
+        setSelectedConversation(conversation)
+
+        // 2. DỌN DẸP URL: Xóa param đi để trả về "/messages" thuần túy
+        // Dùng replace để không lưu vào lịch sử duyệt web
+        router.replace("/messages", { scroll: false })
+      }
+    }
+  }, [searchParams, conversations, router])
 
   useEffect(() => {
     if (selectedConversation) {
