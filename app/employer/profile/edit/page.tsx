@@ -12,7 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, CheckCircle, Building2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Loader2, CheckCircle, Building2, Shield } from "lucide-react"
 import { api } from "@/lib/api"
 
 export default function EmployerProfileEditPage() {
@@ -20,6 +21,9 @@ export default function EmployerProfileEditPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [userStatus, setUserStatus] = useState<"ACTIVE" | "INACTIVE" | "BANNED" | "DELETED" | "PENDING" | null>(null)
+  const [isRequestingActivation, setIsRequestingActivation] = useState(false)
+  const [showActivationModal, setShowActivationModal] = useState(false)
 
   // Personal Information
   const [firstName, setFirstName] = useState("")
@@ -62,6 +66,13 @@ export default function EmployerProfileEditPage() {
           setIndustry(employer.industry || "")
           setDescription(employer.description || "")
           setLogoUrl(employer.logoUrl || "")
+
+          // Lấy userStatus từ response (có thể nằm trong userStatus hoặc status)
+          if ((employer as any).userStatus) {
+            setUserStatus((employer as any).userStatus)
+          } else if ((employer as any).status) {
+            setUserStatus((employer as any).status)
+          }
         }
       }
     } catch (error) {
@@ -110,6 +121,21 @@ export default function EmployerProfileEditPage() {
     }
   }
 
+  const handleRequestActivation = async () => {
+    const userId = localStorage.getItem("userId")
+    if (!userId) return
+
+    setIsRequestingActivation(true)
+    try {
+      await api.requestActivation(userId)
+      setShowActivationModal(true)
+    } catch (error: any) {
+      setError(error?.message || "Không thể gửi yêu cầu kích hoạt. Vui lòng thử lại sau.")
+    } finally {
+      setIsRequestingActivation(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 px-20">
       <div className="container mx-auto px-4 py-8">
@@ -132,19 +158,44 @@ export default function EmployerProfileEditPage() {
             <Building2 className="h-6 w-6" />
             Cập nhật hồ sơ công ty
           </h1>
-          <Button onClick={handleSubmit} disabled={isLoading} size="lg">
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Đang lưu...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Lưu lại
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-3">
+            {userStatus === "ACTIVE" ? (
+              <span className="text-green-600 font-medium text-sm cursor-default">Đã kích hoạt</span>
+            ) : userStatus === "INACTIVE" ? (
+              <Button
+                onClick={handleRequestActivation}
+                disabled={isRequestingActivation}
+                variant="outline"
+                size="lg"
+                className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+              >
+                {isRequestingActivation ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang gửi...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Kích hoạt
+                  </>
+                )}
+              </Button>
+            ) : null}
+            <Button onClick={handleSubmit} disabled={isLoading} size="lg">
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Lưu lại
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -311,6 +362,23 @@ export default function EmployerProfileEditPage() {
             </CardContent>
           </Card>
         </form>
+
+        {/* Activation Modal */}
+        <Dialog open={showActivationModal} onOpenChange={setShowActivationModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Email kích hoạt đã được gửi</DialogTitle>
+              <DialogDescription>
+                Email kích hoạt tài khoản đã được gửi. Vui lòng mở hộp thư Email của bạn và nhấn vào đường dẫn kích hoạt để hoàn tất việc kích hoạt tài khoản.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setShowActivationModal(false)} className="w-full">
+                Đã hiểu
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )
