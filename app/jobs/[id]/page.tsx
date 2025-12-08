@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,15 +23,22 @@ import { api, type JobPost } from "@/lib/api"
 import { ApplyJobDialog } from "@/components/apply-job-dialog"
 import { LoginDialog } from "@/components/login-dialog"
 import { useSavedJobs } from "@/context/saved-jobs-context"
+import { EmployerChatButton } from "@/components/employer-chat-button"
 
 export default function JobDetailPage() {
   const params = useParams()
+  const router = useRouter()
   const jobId = params.id as string
 
   const [job, setJob] = useState<JobPost | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [employerPhone, setEmployerPhone] = useState("")
+  const [companyId, setCompanyId] = useState<string | null>(null)
+  const [companyDetails, setCompanyDetails] = useState<any>(null)
+  const [relatedJobs, setRelatedJobs] = useState<JobPost[]>([])
+  const [loadingRelated, setLoadingRelated] = useState(false)
 
   const [showApplyDialog, setShowApplyDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -44,33 +51,67 @@ export default function JobDetailPage() {
     }
   }, [jobId])
 
+  useEffect(() => {
+    if (job?.employerId) {
+      fetchRelatedJobs(job.employerId)
+    }
+  }, [job?.employerId, jobId])
+
   const fetchJobDetails = async () => {
     setIsLoading(true)
     try {
       const response = await api.getJobById(jobId)
       setJob(response.data)
+
+      if (response.data?.employerId) {
+        const employerResponse = await api.getEmployerById(response.data.employerId)
+        setEmployerPhone(employerResponse.data?.phone || "")
+
+        if (response.data?.companyName) {
+          try {
+            const companyResponse = await api.getCompanyDetailByName(response.data.companyName)
+            setCompanyDetails(companyResponse.data)
+            setCompanyId(response.data.companyName)
+          } catch (err) {
+            console.error("Error fetching company details:", err)
+          }
+        }
+      }
     } catch (error: any) {
       setError(error.message || "Không thể tải thông tin việc làm")
     } finally {
       setIsLoading(false)
     }
   }
+
+  const fetchRelatedJobs = async (employerId: string) => {
+    setLoadingRelated(true)
+    try {
+      const response = await api.getJobsByEmployer(employerId, 0, 4)
+      const filtered = response.data?.content?.filter((j: JobPost) => j.id !== jobId).slice(0, 4) || []
+      setRelatedJobs(filtered)
+    } catch (error) {
+      console.error("Error fetching related jobs:", error)
+      setRelatedJobs([])
+    } finally {
+      setLoadingRelated(false)
+    }
+  }
+
   const formatJobDescription = (description: string) => {
     if (!description) {
       return ""
     }
     const withBold = description.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-
     const withLineBreaks = withBold.replace(/\n/g, "<br />")
-
     return withLineBreaks
   }
+
   const formatSalaryShort = (salary: number) => {
     if (salary >= 1000000) {
       const millions = salary / 1000000
       return `${Number(millions.toFixed(1))} Triệu`
     }
-
     return salary.toLocaleString()
   }
 
@@ -79,7 +120,6 @@ export default function JobDetailPage() {
       const millions = salary / 1000000
       return `${Number(millions.toFixed(1))}`
     }
-
     return salary.toLocaleString()
   }
 
@@ -127,10 +167,19 @@ export default function JobDetailPage() {
     }
   }
 
+  const handleViewCompany = () => {
+    if (companyId) {
+      router.push(`/companies/${encodeURIComponent(companyId)}`)
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="container mx-auto px-4 py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Đang tải thông tin...</p>
+        </div>
       </div>
     )
   }
@@ -155,7 +204,6 @@ export default function JobDetailPage() {
   return (
     <div className="min-h-screen bg-background px-20">
       <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
         <div className="mb-6">
           <Link href="/jobs">
             <Button variant="ghost" className="mb-4">
@@ -166,9 +214,7 @@ export default function JobDetailPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Job Header */}
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -191,12 +237,6 @@ export default function JobDetailPage() {
                       </CardDescription>
                     </div>
                   </div>
-                  {/* <div className="flex items-center space-x-2">
-                    <div className="flex items-center text-yellow-500">
-                      <Star className="h-5 w-5 fill-current" />
-                      <span className="ml-1">4.8</span>
-                    </div>
-                  </div> */}
                 </div>
               </CardHeader>
               <CardContent>
@@ -236,7 +276,6 @@ export default function JobDetailPage() {
                   </div>
                 </div>
 
-                {/* Additional Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div className="flex items-center text-muted-foreground">
                     <Calendar className="h-4 w-4 mr-2" />
@@ -247,17 +286,9 @@ export default function JobDetailPage() {
                     Hạn nộp: {new Date(job.closingDate).toLocaleDateString("vi-VN")}
                   </div>
                 </div>
-
-                {/* <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">React</span>
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">TypeScript</span>
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Next.js</span>
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Node.js</span>
-                </div> */}
               </CardContent>
             </Card>
 
-            {/* Job Description */}
             <Card>
               <CardHeader>
                 <CardTitle>Mô tả công việc</CardTitle>
@@ -270,7 +301,6 @@ export default function JobDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Job Position */}
             {job.jobPosition && (
               <Card>
                 <CardHeader>
@@ -284,7 +314,6 @@ export default function JobDetailPage() {
               </Card>
             )}
 
-            {/* Experience */}
             {job.experience && (
               <Card>
                 <CardHeader>
@@ -299,10 +328,8 @@ export default function JobDetailPage() {
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Apply Card */}
-            <Card>
+            <Card >
               <CardContent className="p-6">
                 {success && (
                   <Alert className="mb-4 border-green-200 bg-green-50 text-green-800">
@@ -317,11 +344,17 @@ export default function JobDetailPage() {
                   </Alert>
                 )}
 
-                <div className="space-y-4">
-                  <Button onClick={handleApply} className="w-full" size="lg">
+                <div className="space-y-4 py-3.5">
+                  <Button onClick={handleApply} className="w-full mb-2" size="lg">
                     Ứng tuyển ngay
                   </Button>
-
+                  {job.employerId && employerPhone && (
+                    <EmployerChatButton
+                      employerId={job.employerId}
+                      employerName={job.employerName}
+                      employerPhone={employerPhone}
+                    />
+                  )}
                   <div className="flex space-x-2">
                     <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
                       <Flag className={`h-4 w-4 mr-2 ${isSaved(jobId) ? "fill-yellow-500 text-yellow-500" : ""}`} />
@@ -336,7 +369,6 @@ export default function JobDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Company Info */}
             <Card>
               <CardHeader>
                 <CardTitle>Thông tin công ty</CardTitle>
@@ -345,55 +377,130 @@ export default function JobDetailPage() {
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Building2 className="h-6 w-6 text-primary" />
+                      {companyDetails?.logoUrl ? (
+                        <img
+                          src={companyDetails.logoUrl || "/placeholder.svg"}
+                          alt={companyDetails.companyName}
+                          className="w-full h-full object-contain rounded-lg"
+                        />
+                      ) : (
+                        <Building2 className="h-6 w-6 text-primary" />
+                      )}
                     </div>
                     <div>
-                      <h3 className="font-semibold">{job.employerName || "Công ty chưa cập nhật"}</h3>
-                      <p className="text-sm text-muted-foreground">{job.categoryName || "Công nghệ thông tin"}</p>
+                      <h3 className="font-semibold">
+                        {companyDetails?.companyName || job.employerName || "Công ty chưa cập nhật"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {companyDetails?.industry || job.categoryName || "Công nghệ thông tin"}
+                      </p>
                     </div>
                   </div>
 
                   <div className="space-y-2 text-sm">
+                    {companyDetails?.description && (
+                      <p className="text-muted-foreground line-clamp-2">{companyDetails.description}</p>
+                    )}
                     <div className="flex items-center text-muted-foreground">
                       <Users className="h-4 w-4 mr-2" />
-                      100-500 nhân viên
+                      {companyDetails?.totalEmployers || 0} nhân viên
                     </div>
                     <div className="flex items-center text-muted-foreground">
                       <MapPin className="h-4 w-4 mr-2" />
-                      Hà Nội, Việt Nam
-                    </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Thành lập 2015
+                      {companyDetails?.location || "Việt Nam"}
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full bg-transparent">
+                  <Button onClick={handleViewCompany} variant="outline" className="w-full bg-transparent">
                     Xem trang công ty
                   </Button>
+
+
                 </div>
               </CardContent>
             </Card>
 
-            {/* Similar Jobs */}
             <Card>
               <CardHeader>
                 <CardTitle>Việc làm tương tự</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[1, 2, 3].map((similarJob) => (
-                    <div key={similarJob} className="border-b pb-4 last:border-b-0">
-                      <h4 className="font-medium mb-1">Senior Backend Developer</h4>
-                      <p className="text-sm text-muted-foreground mb-2">TechCorp Vietnam</p>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        Hà Nội
-                        <DollarSign className="h-3 w-3 ml-4 mr-1" />
-                        20-35 triệu
-                      </div>
+                  {loadingRelated ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
-                  ))}
+                  ) : relatedJobs.length > 0 ? (
+                    relatedJobs.map((similarJob) => (
+                      <Link key={similarJob.id} href={`/jobs/${similarJob.id}`}>
+
+                        <Card className="hover:shadow-lg transition-all cursor-pointer h-full border-l-4 border-l-blue-600 mb-2">
+                          <CardContent className="p-4">
+                            <div className="flex gap-3 mb-3">
+                              {similarJob.logoUrl && (
+                                <div className="w-12 h-12 rounded flex-shrink-0 bg-muted flex items-center justify-center overflow-hidden">
+                                  <img
+                                    src={similarJob.logoUrl || "/placeholder.svg"}
+                                    alt={similarJob.companyName || "Company logo"}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-sm line-clamp-2 text-blue-600 hover:underline">
+                                  {similarJob.title}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {similarJob.minSalary && similarJob.maxSalary
+                                    ? `${formatMinSalaryShort(similarJob.minSalary)} - ${formatSalaryShort(similarJob.maxSalary)} VNĐ`
+                                    : similarJob.minSalary
+                                      ? `Từ ${formatSalaryShort(similarJob.minSalary)} VNĐ`
+                                      : similarJob.maxSalary
+                                        ? `Đến ${formatSalaryShort(similarJob.maxSalary)} VNĐ`
+                                        : "Thỏa thuận"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Location */}
+                            <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+                              <MapPin className="w-4 h-4 flex-shrink-0" />
+                              <span className="line-clamp-1">{similarJob.location}</span>
+                            </div>
+
+                            {/* Tags: Style màu xám (gray-100) */}
+                            <div className="flex flex-wrap gap-2">
+                              {similarJob.jobType && (
+                                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                  {similarJob.jobType === "INTERNSHIP"
+                                    ? "Internship"
+                                    : similarJob.jobType === "FRESHER"
+                                      ? "Fresher"
+                                      : similarJob.jobType === "JUNIOR"
+                                        ? "Junior"
+                                        : similarJob.jobType === "SENIOR"
+                                          ? "Senior"
+                                          : similarJob.jobType === "MANAGER"
+                                            ? "Manager"
+                                            : "Không xác định"}
+                                </span>
+                              )}
+                              {similarJob.experience && (
+                                <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                  {similarJob.experience}
+                                </span>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      Không có công việc tương tự
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -153,8 +153,8 @@ export default function JobsPage() {
             ? undefined
             : (searchParams.jobType as "INTERNSHIP" | "FRESHER" | "JUNIOR" | "SENIOR" | "MANAGER"),
         categoryId: searchParams.categoryId === "all" ? undefined : Number(searchParams.categoryId),
-        minSalary: searchParams.minSalary ? Number(searchParams.minSalary)*1000000 : undefined,
-        maxSalary: searchParams.maxSalary ? Number(searchParams.maxSalary)*1000000 : undefined,
+        minSalary: searchParams.minSalary ? Number(searchParams.minSalary) * 1000000 : undefined,
+        maxSalary: searchParams.maxSalary ? Number(searchParams.maxSalary) * 1000000 : undefined,
         experience: searchParams.experience === "all" ? undefined : searchParams.experience || undefined,
         jobStatus: "ACCEPTED" as const,
         page: searchParams.page,
@@ -446,11 +446,14 @@ export default function JobsPage() {
 
         {/* Jobs Grid */}
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="container mx-auto px-4 py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Đang tải thông tin...</p>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {jobs.map((job) => (
               <Link
                 key={job.id}
@@ -478,10 +481,11 @@ export default function JobsPage() {
 
                         {/* Job Info */}
                         <div className="w-4/5 min-w-0 flex flex-col">
-                          <CardTitle className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors h-12 leading-6">
+                          <CardTitle className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors leading-tight">
+                      
                             {job.title}
                           </CardTitle>
-                          <CardDescription className="mt-1 text-sm">
+                          <CardDescription className="text-sm mt-1">
                             {job.companyName || job.employerName || "Công ty chưa cập nhật"}
                           </CardDescription>
                         </div>
@@ -491,11 +495,10 @@ export default function JobsPage() {
                         variant="ghost"
                         size="sm"
                         onClick={(e) => toggleSaveJob(job.id, e)}
-                        className={`flex-shrink-0 h-8 w-8 p-0 ${
-                          isSaved(job.id)
-                            ? "text-yellow-500 hover:text-yellow-600"
-                            : "text-muted-foreground hover:text-yellow-500"
-                        }`}
+                        className={`flex-shrink-0 h-8 w-8 p-0 ${isSaved(job.id)
+                          ? "text-yellow-500 hover:text-yellow-600"
+                          : "text-muted-foreground hover:text-yellow-500"
+                          }`}
                       >
                         <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
                       </Button>

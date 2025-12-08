@@ -105,10 +105,12 @@ export function EmployerChatButton({ employerId, employerName, employerPhone }: 
         <Button
           size="sm"
           variant="outline"
-          className="gap-2 w-full mt-3 text-blue-600 border-blue-600 hover:bg-blue-50 bg-transparent"
+          className="gap-2 w-full mt-3 text-blue-600 border-blue-600 
+             hover:bg-blue-50 bg-transparent flex items-center justify-center"
+
         >
-          <MessageSquare className="h-4 w-4" />
-          Chat với tôi
+          <MessageSquare className="h-2 w-2 mt-1" />
+          Chat với nhà tuyển dụng
         </Button>
       </DialogTrigger>
 
