@@ -225,125 +225,120 @@ export default function HomePage() {
           </div>
 
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="container mx-auto px-4 py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Đang tải...</p>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {featuredJobs.length > 0 ? (
                 featuredJobs.map((job) => (
                   <Link
-                    key={job.id}
-                    href={`/jobs/${job.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block group h-full"
-                  >
-                    <Card className="h-full flex flex-col justify-between hover:shadow-lg hover:border-primary/50 transition-all duration-200 gap-0" >
-                      <CardHeader className="min-h-[100px]">
-                        <div className="flex items-start justify-between gap-3 h-full">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            {/* Logo */}
-                            <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-primary/10 flex items-center justify-center">
-                              {job.logoUrl ? (
-                                <img
-                                  src={job.logoUrl || "/placeholder.svg"}
-                                  alt={job.companyName || "Company logo"}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <Building2 className="h-6 w-6 text-primary" />
-                              )}
-                            </div>
-
-                            {/* Job Info */}
-                            <div className="w-4/5 min-w-0 flex flex-col">
-                              <CardTitle className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors h-12 leading-6">
-                                {job.title}
-                              </CardTitle>
-                              <CardDescription className="mt-1 text-sm">
-                                {job.companyName || job.employerName || "Công ty chưa cập nhật"}
-                              </CardDescription>
-                            </div>
-                          </div>
-
-                          {/* Save Button */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => toggleSaveJob(job.id, e)}
-                            className={`flex-shrink-0 h-8 w-8 p-0 ${
-                              isSaved(job.id)
-                                ? "text-yellow-500 hover:text-yellow-600"
-                                : "text-muted-foreground hover:text-yellow-500"
-                            }`}
-                          >
-                            <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
-                          </Button>
+                key={job.id}
+                href={`/jobs/${job.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block group h-full"
+              >
+                <Card className="h-full flex flex-col justify-between hover:shadow-lg hover:border-primary/50 transition-all duration-200">
+                  <CardHeader className="pb-0 min-h-[10px]">
+                    <div className="flex items-start justify-between gap-3 h-full">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {/* Logo */}
+                        <div className="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden bg-primary/10 flex items-center justify-center">
+                          {job.logoUrl ? (
+                            <img
+                              src={job.logoUrl || "/placeholder.svg"}
+                              alt={job.companyName || "Company logo"}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <Building2 className="h-6 w-6 text-primary" />
+                          )}
                         </div>
-                      </CardHeader>
 
-                      <CardContent className="space-y-3 flex-grow">
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Image
-                            src="/assets/placeholder.png"
-                            width={40}
-                            height={40}
-                            alt="Position"
-                            className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
-                          />
-                          <span className="truncate">{job.location}</span>
+                        {/* Job Info */}
+                        <div className="w-4/5 min-w-0 flex flex-col">
+                          <CardTitle className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors leading-tight">
+                      
+                            {job.title}
+                          </CardTitle>
+                          <CardDescription className="text-sm mt-1">
+                            {job.companyName || job.employerName || "Công ty chưa cập nhật"}
+                          </CardDescription>
                         </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Image
-                            src="/assets/position.png"
-                            width={40}
-                            height={40}
-                            alt="Job Type"
-                            className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
-                          />
-                          <span>
-                            {job.jobType === "INTERNSHIP"
-                              ? "Internship"
-                              : job.jobType === "FRESHER"
-                                ? "Fresher"
-                                : job.jobType === "JUNIOR"
-                                  ? "Junior"
-                                  : job.jobType === "SENIOR"
-                                    ? "Senior"
-                                    : job.jobType === "MANAGER"
-                                      ? "Manager"
-                                      : "Không xác định"}
-                          </span>
-                        </div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Image
-                            src="/assets/salary.png"
-                            width={40}
-                            height={40}
-                            alt="Salary"
-                            className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
-                          />
-                          <span className="truncate">
-                            {job.minSalary && job.maxSalary
-                              ? `${formatSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
-                              : job.minSalary
-                                ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
-                                : job.maxSalary
-                                  ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
-                                  : "Thỏa thuận"}
-                          </span>
-                        </div>
-                      </CardContent>
+                      </div>
 
-                      {/* <div className="flex items-center justify-between px-6 pb-4 mt-auto">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                      <span className="text-sm ml-1 font-medium">4.8</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => toggleSaveJob(job.id, e)}
+                        className={`flex-shrink-0 h-8 w-8 p-0 ${isSaved(job.id)
+                          ? "text-yellow-500 hover:text-yellow-600"
+                          : "text-muted-foreground hover:text-yellow-500"
+                          }`}
+                      >
+                        <Flag className={`h-4 w-4 ${isSaved(job.id) ? "fill-yellow-500" : ""}`} />
+                      </Button>
                     </div>
-                  </div> */}
-                    </Card>
-                  </Link>
+                  </CardHeader>
+
+                  <CardContent className="space-y-3 flex-grow">
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Image
+                        src="/assets/placeholder.png"
+                        width={40}
+                        height={40}
+                        alt="Position"
+                        className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                      />
+                      <span className="truncate">{job.location}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Image
+                        src="/assets/position.png"
+                        width={40}
+                        height={40}
+                        alt="Job Type"
+                        className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                      />
+                      <span>
+                        {job.jobType === "INTERNSHIP"
+                          ? "Internship"
+                          : job.jobType === "FRESHER"
+                            ? "Fresher"
+                            : job.jobType === "JUNIOR"
+                              ? "Junior"
+                              : job.jobType === "SENIOR"
+                                ? "Senior"
+                                : job.jobType === "MANAGER"
+                                  ? "Manager"
+                                  : "Không xác định"}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-muted-foreground">
+                      <Image
+                        src="/assets/salary.png"
+                        width={40}
+                        height={40}
+                        alt="Salary"
+                        className="h-5 w-5 mr-2 flex-shrink-0 object-contain"
+                      />
+                      <span className="truncate">
+                        {job.minSalary && job.maxSalary
+                          ? `${formatSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
+                          : job.minSalary
+                            ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
+                            : job.maxSalary
+                              ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
+                              : "Thỏa thuận"}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
                 ))
               ) : (
                 <div className="col-span-full text-center py-12">

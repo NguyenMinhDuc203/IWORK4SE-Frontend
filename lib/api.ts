@@ -1332,7 +1332,23 @@ export const api = {
         totalJobPosts: number
       }>
     >(`/employer/company-detail?companyName=${encodeURIComponent(companyName)}`),
+    
+  forgotPassword: (data: { email: string }) =>
+    fetchApi<ApiResponse<{ success: boolean; message: string }>>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+ 
+
+  resetPassword: (data: { token: string; newPassword: string; confirmPassword: string }) =>
+    fetchApi<ApiResponse<{ success: boolean; message: string }>>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 }
+
+
 
 // Message types
 export interface MessageResponse {
