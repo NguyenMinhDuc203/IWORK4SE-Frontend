@@ -13,7 +13,6 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 import { GoogleLoginButton } from "@/components/google-login-button"
 
-
 export default function LoginPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
@@ -72,18 +71,45 @@ export default function LoginPage() {
 
   const handleGoogleLoginSuccess = async (credential: string) => {
     try {
+      setIsLoading(true)
+      setError("")
+      console.log("Starting Google login with credential")
 
+      const response = await api.googleLogin(credential, "WEB", "aa", "V1.0.0")
 
-      setError("Vui lòng liên hệ với hỗ trợ để đăng nhập bằng Google")
-      // TODO: Implement Google authentication endpoint on backend
+      localStorage.setItem("token", response.data.accessToken)
+      localStorage.setItem("refreshToken", response.data.refreshToken)
+      localStorage.setItem("role", response.data.role)
+      localStorage.setItem("userType", response.data.role)
+      localStorage.setItem("userId", response.data.userId)
+      localStorage.setItem("fullName", response.data.fullName)
+      localStorage.setItem("email", response.data.email)
+      localStorage.setItem("phone", response.data.phone)
+      console.log("Google login successful:", response.data)
+      window.dispatchEvent(new Event("auth:changed"))
+      window.dispatchEvent(new Event("storage"))
+
+      if (response.data.role === "ADMIN") {
+        localStorage.setItem("isAdmin", "true")
+        router.push("/admin/dashboard")
+        router.refresh()
+      } else if (response.data.role === "APPLICANT") {
+        router.push("/jobs")
+        router.refresh()
+      } else if (response.data.role === "EMPLOYER") {
+        router.push("/")
+        router.refresh()
+      }
     } catch (error: any) {
-      console.error("[v0] Google login error:", error)
-      setError("Đăng nhập bằng Google thất bại. Vui lòng thử lại.")
+      console.error("Google login error:", error)
+      setError(error.message || "Đăng nhập bằng Google thất bại. Vui lòng thử lại.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleGoogleLoginError = (error: any) => {
-    console.error("[v0] Google login failed:", error)
+    console.error("Google login failed:", error)
     setError("Đăng nhập bằng Google thất bại")
   }
 
@@ -104,7 +130,7 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">Tên đăng nhập</Label>
+                <Label htmlFor="username">Tên đăng nhập/ Email</Label>
                 <Input
                   id="username"
                   name="username"
@@ -113,6 +139,7 @@ export default function LoginPage() {
                   value={formData.username}
                   onChange={handleInputChange}
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -127,6 +154,7 @@ export default function LoginPage() {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -134,6 +162,7 @@ export default function LoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -142,7 +171,7 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <input id="remember" type="checkbox" className="rounded border-gray-300" />
+                  <input id="remember" type="checkbox" className="rounded border-gray-300" disabled={isLoading} />
                   <Label htmlFor="remember" className="text-sm">
                     Ghi nhớ đăng nhập
                   </Label>

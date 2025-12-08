@@ -539,6 +539,27 @@ export const api = {
       body: JSON.stringify(credentials),
     }),
 
+  googleLogin: (credential: string, platform: string, deviceToken: string, versionApp: string) =>
+    fetchApi<
+      ApiResponse<{
+        accessToken: string
+        refreshToken: string
+        role: string
+        userId: string
+        fullName: string
+        email: string
+        phone: string
+      }>
+    >("/auth/login/google", {
+      method: "POST",
+      body: JSON.stringify({
+        credential,
+        platform,
+        deviceToken,
+        versionApp,
+      }),
+    }),
+
   refreshToken: (refreshToken: string) =>
     fetchApi<any>(`/auth/refresh-token?refreshToken=${encodeURIComponent(refreshToken)}`, {
       method: "POST",
@@ -1332,14 +1353,14 @@ export const api = {
         totalJobPosts: number
       }>
     >(`/employer/company-detail?companyName=${encodeURIComponent(companyName)}`),
-    
+
   forgotPassword: (data: { email: string }) =>
     fetchApi<ApiResponse<{ success: boolean; message: string }>>("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
- 
+
 
   resetPassword: (data: { token: string; newPassword: string; confirmPassword: string }) =>
     fetchApi<ApiResponse<{ success: boolean; message: string }>>("/auth/reset-password", {

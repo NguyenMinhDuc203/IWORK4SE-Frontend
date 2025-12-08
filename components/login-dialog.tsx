@@ -83,14 +83,31 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
 
   const handleGoogleLoginSuccess = async (credential: string) => {
     try {
-     
+      setIsLoading(true)
+      setError("")
+      console.log("Starting Google login in dialog with credential")
 
-      // You would typically send this credential to your backend for verification
-      setError("Vui lòng liên hệ với hỗ trợ để đăng nhập bằng Google")
-      // TODO: Implement Google authentication endpoint on backend
+      const response = await api.googleLogin(credential, "WEB", "aa", "V1.0.0")
+
+      // Save to localStorage
+      localStorage.setItem("token", response.data.accessToken)
+      localStorage.setItem("refreshToken", response.data.refreshToken)
+      localStorage.setItem("userType", response.data.role)
+      localStorage.setItem("userId", response.data.userId)
+      localStorage.setItem("fullName", response.data.fullName)
+      localStorage.setItem("email", response.data.email)
+      localStorage.setItem("phone", response.data.phone || "")
+
+      console.log("[v0] Google login successful in dialog:", response.data)
+      window.dispatchEvent(new Event("auth:changed"))
+      onOpenChange(false)
+      if (onLoginSuccess) {
+        onLoginSuccess()
+      }
     } catch (error: any) {
-      console.error("[v0] Google login error:", error)
-      setError("Đăng nhập bằng Google thất bại")
+      console.error("[v0] Google login error in dialog:", error)
+      setError(error.message || "Đăng nhập bằng Google thất bại")
+      setIsLoading(false)
     }
   }
 

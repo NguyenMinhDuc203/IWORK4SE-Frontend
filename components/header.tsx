@@ -12,6 +12,14 @@ import { Client } from "@stomp/stompjs"
 import SockJS from "sockjs-client"
 
 import { Search, Bell, Menu, X, ChevronDown, Shield } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -29,6 +37,7 @@ export function Header() {
   const [stompClient, setStompClient] = useState<Client | null>(null)
   const [userStatus, setUserStatus] = useState<"ACTIVE" | "INACTIVE" | "BANNED" | "DELETED" | "PENDING" | null>(null)
   const [isRequestingActivation, setIsRequestingActivation] = useState(false)
+  const [isActivationEmailModalOpen, setIsActivationEmailModalOpen] = useState(false)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
@@ -311,10 +320,11 @@ export function Header() {
     setIsRequestingActivation(true)
     try {
       await api.requestActivation(userId)
-      alert("Yêu cầu kích hoạt tài khoản đã được gửi đến admin. Vui lòng chờ phê duyệt.")
+      setIsActivationEmailModalOpen(true)
     } catch (error: any) {
       console.error("Error requesting activation:", error)
-      alert(error?.message || "Không thể gửi yêu cầu kích hoạt. Vui lòng thử lại sau.")
+      // Nếu lỗi, có thể hiển thị alert đơn giản
+      window.alert(error?.message || "Không thể gửi yêu cầu kích hoạt. Vui lòng thử lại sau.")
     } finally {
       setIsRequestingActivation(false)
     }
@@ -1149,6 +1159,23 @@ export function Header() {
           </div>
         )}
       </div>
+      {/* Modal thông báo sau khi gửi email kích hoạt */}
+      <Dialog open={isActivationEmailModalOpen} onOpenChange={setIsActivationEmailModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vui lòng kiểm tra Email</DialogTitle>
+            <DialogDescription>
+              Email kích hoạt tài khoản đã được gửi. Vui lòng mở hộp thư Email của bạn và nhấn vào đường dẫn kích hoạt
+              để hoàn tất việc kích hoạt tài khoản.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" onClick={() => setIsActivationEmailModalOpen(false)}>
+              Đã hiểu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }
