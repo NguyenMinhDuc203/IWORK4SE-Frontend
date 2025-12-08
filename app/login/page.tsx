@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import Image from "next/image"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -10,8 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Briefcase, Eye, EyeOff, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
+import { GoogleLoginButton } from "@/components/google-login-button"
 
 
 export default function LoginPage() {
@@ -51,7 +51,7 @@ export default function LoginPage() {
       } else if (response.data.role === "APPLICANT") {
         router.push("/jobs")
         router.refresh()
-      }else if (response.data.role === "EMPLOYER") {
+      } else if (response.data.role === "EMPLOYER") {
         router.push("/")
         router.refresh()
       }
@@ -70,12 +70,26 @@ export default function LoginPage() {
     }))
   }
 
+  const handleGoogleLoginSuccess = async (credential: string) => {
+    try {
+
+
+      setError("Vui lòng liên hệ với hỗ trợ để đăng nhập bằng Google")
+      // TODO: Implement Google authentication endpoint on backend
+    } catch (error: any) {
+      console.error("[v0] Google login error:", error)
+      setError("Đăng nhập bằng Google thất bại. Vui lòng thử lại.")
+    }
+  }
+
+  const handleGoogleLoginError = (error: any) => {
+    console.error("[v0] Google login failed:", error)
+    setError("Đăng nhập bằng Google thất bại")
+  }
+
   return (
-    
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 py-12 px-4">
       <div className="w-full max-w-md">
-      
-
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">Đăng nhập</CardTitle>
@@ -149,6 +163,24 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
+
+            <div className="mt-4 space-y-2">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-muted" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Hoặc</span>
+                </div>
+              </div>
+              <GoogleLoginButton
+                onSuccess={handleGoogleLoginSuccess}
+                onError={handleGoogleLoginError}
+                isLoading={isLoading}
+                buttonText="Đăng nhập với Google"
+                fullWidth={true}
+              />
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">

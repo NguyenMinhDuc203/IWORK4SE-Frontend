@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { GoogleLoginButton } from "@/components/google-login-button"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -80,6 +81,24 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
     router.push("/register")
   }
 
+  const handleGoogleLoginSuccess = async (credential: string) => {
+    try {
+     
+
+      // You would typically send this credential to your backend for verification
+      setError("Vui lòng liên hệ với hỗ trợ để đăng nhập bằng Google")
+      // TODO: Implement Google authentication endpoint on backend
+    } catch (error: any) {
+      console.error("[v0] Google login error:", error)
+      setError("Đăng nhập bằng Google thất bại")
+    }
+  }
+
+  const handleGoogleLoginError = (error: any) => {
+    console.error("[v0] Google login failed:", error)
+    setError("Đăng nhập bằng Google thất bại")
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -129,6 +148,24 @@ export function LoginDialog({ open, onOpenChange, onLoginSuccess }: LoginDialogP
             )}
           </Button>
         </form>
+
+        <div className="py-2 space-y-2">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-muted" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Hoặc</span>
+            </div>
+          </div>
+          <GoogleLoginButton
+            onSuccess={handleGoogleLoginSuccess}
+            onError={handleGoogleLoginError}
+            isLoading={isLoading}
+            buttonText="Đăng nhập với Google"
+            fullWidth={true}
+          />
+        </div>
 
         <DialogFooter className="flex-col sm:flex-col gap-2">
           <div className="text-center text-sm text-muted-foreground">
