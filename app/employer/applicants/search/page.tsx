@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Search, Filter, User, MapPin, GraduationCap, Star, Loader2, Mail, Phone, Calendar, Save, Plus } from "lucide-react"
 import { api, type ApplicantDocument, type ApplicantSearchRequest } from "@/lib/api"
+import { ApplicantContactButton } from "@/components/applicant-contact-button"
 
 export default function ApplicantSearchPage() {
   const router = useRouter()
@@ -428,10 +429,13 @@ export default function ApplicantSearchPage() {
                     Tham gia: {formatDate(applicant.createAt)}
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      <Mail className="h-4 w-4 mr-2" />
-                      Liên hệ
-                    </Button>
+                    <ApplicantContactButton
+                      applicantId={applicant.id}
+                      applicantName={`${applicant.firstName} ${applicant.lastName}`}
+                      applicantEmail={applicant.email}
+                      triggerSize="sm"
+                      triggerVariant="outline"
+                    />
                     <Button 
                       size="sm" 
                       onClick={() => handleSaveApplicant(applicant)}

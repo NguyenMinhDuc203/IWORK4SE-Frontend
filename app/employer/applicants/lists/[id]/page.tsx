@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ApplicantContactButton } from "@/components/applicant-contact-button"
 import { api, type SavedApplicantList } from "@/lib/api"
 import { ArrowLeft, Users, Calendar, Trash2 } from "lucide-react"
 
@@ -79,6 +80,17 @@ export default function ApplicantListDetailPage() {
     }
   }
 
+  const markContacted = async (savedApplicantId: string) => {
+    try {
+      await api.updateSavedApplicantContactStatus(savedApplicantId, true)
+      setItems(prev =>
+        prev.map((x: any) => (x.id === savedApplicantId ? { ...x, isContacted: true } : x)),
+      )
+    } catch (e: any) {
+      setError(e?.message || "Không thể cập nhật trạng thái liên hệ")
+    }
+  }
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return ""
     return new Date(dateString).toLocaleDateString("vi-VN")
@@ -142,27 +154,21 @@ export default function ApplicantListDetailPage() {
             <Card key={item.id} className="hover:shadow-sm">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="cursor-pointer" onClick={() => openApplicant(item.applicantId)}>
-                  <div className="font-medium">{item.applicantName || "Ứng viên"}</div>
+                  <div className="font-medium flex items-center gap-2">
+                    {item.applicantName || "Ứng viên"}
+                    {item.isContacted && <Badge variant="secondary">Đã liên hệ</Badge>}
+                  </div>
                   <div className="text-sm text-gray-600">{item.applicantEmail}</div>
                   <div className="text-sm text-gray-600 mt-1">Ngày lưu: {formatDate(item.savedDate)}</div>
                   {item.notes && <div className="text-sm mt-1">Ghi chú: {item.notes}</div>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant={item.isContacted ? "default" : "outline"}
-                    className={item.isContacted ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-                    disabled={item.isContacted}
-                    onClick={async () => {
-                      try {
-                        await api.updateSavedApplicantContactStatus(item.id, true)
-                        setItems(prev => prev.map((x: any) => x.id === item.id ? { ...x, isContacted: true } : x))
-                      } catch (e: any) {
-                        setError(e?.message || "Không thể cập nhật trạng thái liên hệ")
-                      }
-                    }}
-                  >
-                    {item.isContacted ? "Đã liên hệ" : "Đánh dấu đã liên hệ"}
-                  </Button>
+                  <ApplicantContactButton
+                    applicantId={item.applicantId}
+                    applicantName={item.applicantName || "Ứng viên"}
+                    applicantEmail={item.applicantEmail}
+                    onContact={() => markContacted(item.id)}
+                  />
                   <Button variant="outline" className="text-red-600" onClick={() => handleRemove(item.id)}>
                     <Trash2 className="h-4 w-4 mr-2" />
                     Xóa khỏi danh sách
