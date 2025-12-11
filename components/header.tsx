@@ -140,7 +140,7 @@ export function Header() {
     const role = localStorage.getItem("role")
     if (!userId || !role) return
 
-    const socket = new SockJS(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/ws-notification`)
+    const socket = new SockJS(`${process.env.NEXT_PUBLIC_API_URL || "http://13.212.17.217:8080"}/ws-notification`)
     const client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
@@ -394,12 +394,7 @@ export function Header() {
             >
               Công ty
             </Link>
-            <Link
-              href="/messages"
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors mr-8"
-            >
-              Tin nhắn
-            </Link>
+
 
             {isLoggedIn ? (
               <div className="flex items-center space-x-4">
@@ -502,6 +497,18 @@ export function Header() {
                     </Link>
                   </>
                 )}
+
+                {userType === "APPLICANT" && (
+                  <>
+                    <Link
+                      href="/messages"
+                      className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors mr-8"
+                    >
+                      Tin nhắn
+                    </Link>
+                  </>
+                )}
+
 
                 {/* Nút Kích hoạt cho user INACTIVE (ứng viên / nhà tuyển dụng) */}
                 {/* {userStatus === "INACTIVE" && (userType === "APPLICANT" || userType === "EMPLOYER") && (
