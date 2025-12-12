@@ -5,7 +5,7 @@ import { X, Loader2, Download, Eye, CheckCircle, XCircle, Clock } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { api, type Application } from "@/lib/api"
+import { api, type Application, normalizePageResponse } from "@/lib/api"
 
 interface JobApplicantsDrawerProps {
   jobId: string
@@ -27,9 +27,11 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
     setError("")
     try {
       const response = await api.getApplicationsByJob(jobId, 0, 100)
-      setApplicants(response.data || [])
+      const normalized = normalizePageResponse<Application>(response)
+      setApplicants(normalized.content || [])
     } catch (e: any) {
       setError(e?.message || "Không thể tải danh sách ứng viên")
+      setApplicants([])
     } finally {
       setIsLoading(false)
     }
