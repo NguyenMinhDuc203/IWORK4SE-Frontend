@@ -228,9 +228,9 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
                             <ApplicantContactButton
                               applicantId={applicant.applicantId}
                               applicantName={applicant.applicantName}
-                              applicantEmail={applicantEmails[applicant.applicantId] || ""}
-                              onContact={async () => {
-                                await fetchApplicantEmail(applicant.applicantId)
+                              applicantEmail=""
+                              onFetchEmail={async () => {
+                                return await fetchApplicantEmail(applicant.applicantId)
                               }}
                               triggerSize="sm"
                               triggerVariant="outline"
