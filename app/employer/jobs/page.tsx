@@ -111,26 +111,26 @@ export default function EmployerJobsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {jobs.map((job) => (
-            <Card key={job.id}>
+            <Card key={job.id} className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base line-clamp-2">{job.title}</CardTitle>
                 <Badge className={statusColor(job.jobStatus)}>{getStatusText(job.jobStatus)}</Badge>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex-1 flex flex-col">
                 <div className="text-sm text-muted-foreground line-clamp-3 mb-4">{job.description}</div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{job.location}</span>
-                    {job.minSalary && job.maxSalary && (
-                      <span>
-                        • {job.minSalary.toLocaleString()} - {job.maxSalary.toLocaleString()} VNĐ
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+                  <span>{job.location}</span>
+                  {job.minSalary && job.maxSalary && (
+                    <span>
+                      • {job.minSalary.toLocaleString()} - {job.maxSalary.toLocaleString()} VNĐ
+                    </span>
+                  )}
+                </div>
+                <div className="mt-auto space-y-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full mb-2 bg-transparent"
+                    className="w-full bg-transparent"
                     onClick={() => setSelectedJob({ id: job.id, title: job.title })}
                   >
                     <Users className="h-4 w-4 mr-2" />

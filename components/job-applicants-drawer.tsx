@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { api } from "@/lib/api"
+import { ApplicantContactButton } from "@/components/applicant-contact-button"
 
 interface Application {
   id: string
+  applicantId: string
   applicantName: string
   status: string
   appliedDate: string
@@ -26,6 +28,7 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
   const [applicants, setApplicants] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [applicantEmails, setApplicantEmails] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (jobId) {
@@ -44,7 +47,6 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
         console.warn("API response structure unexpected:", response)
         setApplicants([])
       }
-
     } catch (e: any) {
       console.error("Error fetching applicants:", e)
       setError(e?.message || "Không thể tải danh sách ứng viên")
@@ -96,10 +98,48 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
         month: "2-digit",
         year: "numeric",
         hour: "2-digit",
-        minute: "2-digit"
+        minute: "2-digit",
       })
     } catch {
       return dateString
+    }
+  }
+
+  const fetchApplicantEmail = async (applicantId: string): Promise<string | null> => {
+    if (applicantEmails[applicantId]) {
+      return applicantEmails[applicantId]
+    }
+
+    try {
+      const response = await api.getApplicantById(applicantId)
+      const email = response?.data?.email || null
+
+      if (email) {
+        setApplicantEmails((prev) => ({ ...prev, [applicantId]: email }))
+      }
+
+      return email
+    } catch (error) {
+      console.error("Error fetching applicant email:", error)
+      return null
+    }
+  }
+
+  const handleViewCV = async (applicant: Application) => {
+    try {
+      if (applicant.cvUrl) {
+        window.open(applicant.cvUrl, "_blank")
+        return
+      }
+      const res = await api.getApplicationById(applicant.id)
+      const url = res?.data?.cvUrl
+      if (url) {
+        window.open(url, "_blank")
+      } else {
+        alert("Không tìm thấy CV cho ứng viên này")
+      }
+    } catch {
+      alert("Không thể mở CV. Vui lòng thử lại sau.")
     }
   }
 
@@ -125,8 +165,8 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-full text-red-600">
-                <XCircle className="h-10 w-10 mb-2"/>
-                <p>{error}</p>
+              <XCircle className="h-10 w-10 mb-2" />
+              <p>{error}</p>
             </div>
           ) : applicants.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -138,76 +178,74 @@ export function JobApplicantsDrawer({ jobId, jobTitle, onClose }: JobApplicantsD
             </div>
           ) : (
             <div className="space-y-4">
-              {Array.isArray(applicants) && applicants.map((applicant) => (
-                <Card key={applicant.id} className="hover:shadow-md transition-shadow border-gray-200 bg-white">
-                  <CardContent className="p-5">
-                    <div className="flex items-start gap-4">
-                      <div className="shrink-0">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-sm">
-                          {applicant.applicantName?.charAt(0)?.toUpperCase() || "U"}
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900 text-lg leading-tight">
-                            {applicant.applicantName || "Ứng viên ẩn danh"}
-                          </h3>
-                          <div className="shrink-0">
-                            {getStatusBadge(applicant.status)}
+              {Array.isArray(applicants) &&
+                applicants.map((applicant) => (
+                  <Card key={applicant.id} className="hover:shadow-md transition-shadow border-gray-200 bg-white">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4">
+                        <div className="shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-sm">
+                            {applicant.applicantName?.charAt(0)?.toUpperCase() || "U"}
                           </div>
                         </div>
-
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Clock className="h-4 w-4" />
-                            <span>Ứng tuyển: {formatDate(applicant.appliedDate)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <h3 className="font-semibold text-gray-900 text-lg leading-tight">
+                              {applicant.applicantName || "Ứng viên ẩn danh"}
+                            </h3>
+                            <div className="shrink-0">{getStatusBadge(applicant.status)}</div>
                           </div>
 
-                          {applicant.cvFileName && (
+                          <div className="space-y-2 mb-4">
                             <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <Download className="h-4 w-4" />
-                              <span className="truncate max-w-[200px]" title={applicant.cvFileName}>
-                                {applicant.cvFileName}
-                              </span>
+                              <Clock className="h-4 w-4" />
+                              <span>Ứng tuyển: {formatDate(applicant.appliedDate)}</span>
                             </div>
-                          )}
-                        </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                          {applicant.cvUrl && (
-                            <a 
-                                href={applicant.cvUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="flex-1"
-                            >
-                              <Button variant="outline" size="sm" className="w-full text-gray-700 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50">
-                                <Download className="h-4 w-4 mr-2" />
-                                Tải CV
+                            {applicant.cvFileName && (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Download className="h-4 w-4" />
+                                <span className="truncate max-w-[200px]" title={applicant.cvFileName}>
+                                  {applicant.cvFileName}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                            {applicant.cvUrl && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewCV(applicant)}
+                                className="flex-1 text-gray-700 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Xem CV
                               </Button>
-                            </a>
-                          )}
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                            onClick={() => (window.location.href = `/employer/applicants/${applicant.id}`)} // Lưu ý: Dùng applicant.id thay vì applicantId nếu route backend cần ID của application
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Chi tiết
-                          </Button>
+                            )}
+
+                            <ApplicantContactButton
+                              applicantId={applicant.applicantId}
+                              applicantName={applicant.applicantName}
+                              applicantEmail={applicantEmails[applicant.applicantId] || ""}
+                              onContact={async () => {
+                                await fetchApplicantEmail(applicant.applicantId)
+                              }}
+                              triggerSize="sm"
+                              triggerVariant="outline"
+                              className="flex-1"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           )}
         </div>
 
-        {/* Footer */}
         {!isLoading && !error && applicants.length > 0 && (
           <div className="px-6 py-4 border-t bg-white">
             <p className="text-sm text-gray-600 text-center">
