@@ -156,6 +156,10 @@ export function CVManagementSection() {
   }
 
   const getFileIcon = (fileName: string) => {
+    if (!fileName || typeof fileName !== "string") {
+      return <File className="h-10 w-10 text-gray-500" />
+    }
+
     const ext = fileName.split(".").pop()?.toLowerCase()
 
     if (ext === "pdf") {
