@@ -5,13 +5,15 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Plus, Edit, Trash2 } from "lucide-react"
+import { Loader2, Plus, Edit, Trash2, Users } from "lucide-react"
 import { api, type JobPost, type JobPostPageResponse } from "@/lib/api"
+import { JobApplicantsDrawer } from "@/components/job-applicants-drawer"
 
 export default function EmployerJobsPage() {
   const [jobs, setJobs] = useState<JobPost[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [selectedJob, setSelectedJob] = useState<{ id: string; title: string } | null>(null)
 
   useEffect(() => {
     const role = localStorage.getItem("userType")
@@ -26,7 +28,6 @@ export default function EmployerJobsPage() {
     setIsLoading(true)
     setError("")
     try {
-      // Get current employer's jobs using their userId
       const employerId = localStorage.getItem("userId") || ""
       const res = await api.getJobsByEmployer(employerId, 0, 20)
       const page: JobPostPageResponse | undefined = res?.data
@@ -72,10 +73,9 @@ export default function EmployerJobsPage() {
     if (!confirm("Bạn có chắc chắn muốn xóa tin tuyển dụng này?")) {
       return
     }
-    
+
     try {
       await api.deleteJobPost(jobId)
-      // Refresh the list
       fetchJobs()
     } catch (e: any) {
       alert("Không thể xóa tin tuyển dụng: " + (e?.message || "Lỗi không xác định"))
@@ -110,7 +110,7 @@ export default function EmployerJobsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {jobs.map(job => (
+          {jobs.map((job) => (
             <Card key={job.id}>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-base line-clamp-2">{job.title}</CardTitle>
@@ -118,26 +118,39 @@ export default function EmployerJobsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground line-clamp-3 mb-4">{job.description}</div>
-                <div className="flex justify-between items-center">
+                <div className="space-y-3">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{job.location}</span>
                     {job.minSalary && job.maxSalary && (
-                      <span>• {job.minSalary.toLocaleString()} - {job.maxSalary.toLocaleString()} VNĐ</span>
+                      <span>
+                        • {job.minSalary.toLocaleString()} - {job.maxSalary.toLocaleString()} VNĐ
+                      </span>
                     )}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full mb-2 bg-transparent"
+                    onClick={() => setSelectedJob({ id: job.id, title: job.title })}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Xem ứng viên
+                  </Button>
                   <div className="flex gap-2">
-                    <Link href={`/employer/jobs/${job.id}/edit`}>
-                      <Button size="sm" variant="outline">
-                        <Edit className="h-4 w-4" />
+                    <Link href={`/employer/jobs/${job.id}/edit`} className="flex-1">
+                      <Button size="sm" variant="outline" className="w-full bg-transparent">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Sửa
                       </Button>
                     </Link>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleDeleteJob(job.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="flex-1 text-red-600 hover:text-red-700"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa
                     </Button>
                   </div>
                 </div>
@@ -146,8 +159,10 @@ export default function EmployerJobsPage() {
           ))}
         </div>
       )}
+
+      {selectedJob && (
+        <JobApplicantsDrawer jobId={selectedJob.id} jobTitle={selectedJob.title} onClose={() => setSelectedJob(null)} />
+      )}
     </div>
   )
 }
-
-
