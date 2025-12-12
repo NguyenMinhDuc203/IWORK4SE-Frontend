@@ -54,7 +54,7 @@ export default function MessagesPage() {
     if (!currentUserId) return
 
     // Chuyển đổi HTTP URL sang WS URL
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://13.212.17.217:8080"
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.iwork4se.io.vn"
     const wsUrl = baseUrl.replace(/^http/, "ws") + "/ws-message"
 
     console.log(`[WS] Connecting to: ${wsUrl}`)

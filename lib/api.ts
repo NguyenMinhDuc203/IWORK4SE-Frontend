@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://13.212.17.217:8080"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.iwork4se.io.vn"
 
 export interface ApiResponse<T> {
   status: number

@@ -140,7 +140,7 @@ export function Header() {
     const role = localStorage.getItem("role")
     if (!userId || !role) return
 
-    const socket = new SockJS(`${process.env.NEXT_PUBLIC_API_URL || "http://13.212.17.217:8080"}/ws-notification`)
+    const socket = new SockJS(`${process.env.NEXT_PUBLIC_API_URL || "https://api.iwork4se.io.vn,mnvb cx"}/ws-notification`)
     const client = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
