@@ -7,19 +7,13 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { api } from "@/lib/api"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff } from "lucide-react"
+import PasswordValidator, { validatePassword } from "@/components/password-validator"
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -48,8 +42,9 @@ export default function ChangePasswordPage() {
       return
     }
 
-    if (newPassword.length < 6) {
-      setError("Mật khẩu mới phải có ít nhất 6 ký tự")
+    const validation = validatePassword(newPassword)
+    if (!validation.isValid) {
+      setError("Mật khẩu mới không đáp ứng yêu cầu. Vui lòng kiểm tra lại.")
       return
     }
 
@@ -89,7 +84,7 @@ export default function ChangePasswordPage() {
 
   const handleSuccessConfirm = () => {
     setShowSuccessModal(false)
-
+    router.push("/") // Redirect to home page after successful password change
   }
 
   return (
@@ -161,6 +156,7 @@ export default function ChangePasswordPage() {
                       {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                  <PasswordValidator password={newPassword} />
                 </div>
 
                 {/* Confirm Password */}
@@ -196,7 +192,8 @@ export default function ChangePasswordPage() {
       </div>
 
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="
+        <DialogContent
+          className="
       sm:max-w-md 
       
       /* 1. GHI ĐÈ VỊ TRÍ: Đưa lên phía trên thay vì ở giữa */
@@ -208,16 +205,15 @@ export default function ChangePasswordPage() {
       
       /* (Tùy chọn) Bo góc đẹp hơn cho kiểu top modal */
       rounded-3xl
-  ">
+  "
+        >
           <div className="flex flex-col items-center justify-center gap-4 py-8">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 ring-8 ring-blue-50 animate-in zoom-in-50 duration-300">
               <CheckCircle2 className="h-10 w-10 text-blue-600" strokeWidth={2.5} />
             </div>
 
             <div className="text-center space-y-2 px-4">
-              <DialogTitle className="text-xl font-bold text-gray-900">
-                Đổi mật khẩu thành công!
-              </DialogTitle>
+              <DialogTitle className="text-xl font-bold text-gray-900">Đổi mật khẩu thành công!</DialogTitle>
               <DialogDescription className="text-base text-gray-500">
                 Mật khẩu mới của bạn đã được cập nhật. Bạn có thể sử dụng nó để đăng nhập ngay bây giờ.
               </DialogDescription>
@@ -231,7 +227,6 @@ export default function ChangePasswordPage() {
                 Xác nhận
               </Button>
             </div>
-
           </div>
         </DialogContent>
       </Dialog>

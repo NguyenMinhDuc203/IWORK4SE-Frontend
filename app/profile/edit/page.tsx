@@ -615,10 +615,6 @@ export default function ProfileEditPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* CV Management Section */}
-          <CVManagementSection />
-
           {/* Education */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -723,6 +719,8 @@ export default function ProfileEditPage() {
               )}
             </CardContent>
           </Card>
+          {/* CV Management Section */}
+          <CVManagementSection />
         </form>
 
         {/* Skills Dialog */}

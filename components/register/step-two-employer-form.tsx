@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
+import PasswordValidator, { validatePassword } from "@/components/password-validator"
 
 interface StepTwoEmployerFormProps {
   formData: {
@@ -45,14 +46,20 @@ export default function StepTwoEmployerForm({
     setFormData({ ...formData, [name]: value })
   }
 
+  const handleSubmitWithValidation = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const validation = validatePassword(formData.password)
+    if (!validation.isValid) {
+      alert("Mật khẩu không đáp ứng yêu cầu. Vui lòng kiểm tra lại.")
+      return
+    }
+
+    await onSubmit()
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        onSubmit()
-      }}
-      className="space-y-3"
-    >
+    <form onSubmit={handleSubmitWithValidation} className="space-y-3">
       {/* Personal Info Section */}
       <div>
         <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Thông tin cá nhân</p>
@@ -209,6 +216,7 @@ export default function StepTwoEmployerForm({
               </div>
             </div>
           </div>
+          <PasswordValidator password={formData.password} className="col-span-2" />
         </div>
       </div>
 

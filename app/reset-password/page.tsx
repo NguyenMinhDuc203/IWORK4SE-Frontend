@@ -1,426 +1,223 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
-import Link from "next/link"
+import type React from "react"
+import { useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  MapPin,
-  DollarSign,
-  Building2,
-  Share2,
-  Users,
-  Calendar,
-  CheckCircle,
-  Loader2,
-  ArrowLeft,
-  Briefcase,
-  Flag,
-} from "lucide-react"
-import { api, type JobPost } from "@/lib/api"
-import { ApplyJobDialog } from "@/components/apply-job-dialog"
-import { LoginDialog } from "@/components/login-dialog"
-import { useSavedJobs } from "@/context/saved-jobs-context"
-import { EmployerChatButton } from "@/components/employer-chat-button"
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react"
+import { api } from "@/lib/api"
+import PasswordValidator, { validatePassword } from "@/components/password-validator"
 
-export default function JobDetailPage() {
-  const params = useParams()
-  const jobId = params.id as string
+export default function ResetPasswordPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
 
-  const [job, setJob] = useState<JobPost | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    newPassword: "",
+    confirmPassword: "",
+  })
+  const [showPasswords, setShowPasswords] = useState({
+    new: false,
+    confirm: false,
+  })
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [employerPhone, setEmployerPhone] = useState("")
+  const [isSuccess, setIsSuccess] = useState(false)
 
-  const [showApplyDialog, setShowApplyDialog] = useState(false)
-  const [showLoginDialog, setShowLoginDialog] = useState(false)
-
-  const { isSaved, toggleSaveJob: toggleSaveJobContext } = useSavedJobs()
-
-  useEffect(() => {
-    if (jobId) {
-      fetchJobDetails()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    if (!token) {
+      setError("Token không hợp lệ hoặc đường dẫn bị lỗi.")
+      return
     }
-  }, [jobId])
 
-  const fetchJobDetails = async () => {
+    if (!formData.newPassword || !formData.confirmPassword) {
+      setError("Vui lòng nhập đầy đủ mật khẩu mới và xác nhận")
+      return
+    }
+
+    const validation = validatePassword(formData.newPassword)
+    if (!validation.isValid) {
+      setError("Mật khẩu mới không đáp ứng yêu cầu. Vui lòng kiểm tra lại.")
+      return
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError("Mật khẩu mới và xác nhận không khớp")
+      return
+    }
+
     setIsLoading(true)
-    try {
-      const response = await api.getJobById(jobId)
-      setJob(response.data)
 
-      if (response.data?.employerId) {
-        const employerResponse = await api.getEmployerById(response.data.employerId)
-        setEmployerPhone(employerResponse.data?.phone || "")
+    try {
+      const response = await api.resetPassword({
+        token: token,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      })
+      console.log("Response từ API:", response);
+      const resData = response as any;
+
+      if (resData.success || (resData.data && resData.data.success)) {
+        setIsSuccess(true)
+        setFormData({ newPassword: "", confirmPassword: "" })
+      } else {
+        const msg = resData.message || resData.data?.message || "Lỗi khi đặt lại mật khẩu.";
+        setError(msg)
       }
-    } catch (error: any) {
-      setError(error.message || "Không thể tải thông tin việc làm")
+
+    } catch (err: any) {
+      console.error("Reset password error:", err)
+      setError(err.message || "Lỗi khi đặt lại mật khẩu. Vui lòng thử lại.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const formatJobDescription = (description: string) => {
-    if (!description) {
-      return ""
-    }
-    const withBold = description.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-
-    const withLineBreaks = withBold.replace(/\n/g, "<br />")
-
-    return withLineBreaks
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
-  const formatSalaryShort = (salary: number) => {
-    if (salary >= 1000000) {
-      const millions = salary / 1000000
-      return `${Number(millions.toFixed(1))} Triệu`
-    }
-
-    return salary.toLocaleString()
-  }
-
-  const formatMinSalaryShort = (salary: number) => {
-    if (salary >= 1000000) {
-      const millions = salary / 1000000
-      return `${Number(millions.toFixed(1))}`
-    }
-
-    return salary.toLocaleString()
-  }
-
-  const handleApply = () => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      setShowLoginDialog(true)
-    } else {
-      setShowApplyDialog(true)
-    }
-  }
-
-  const handleLoginSuccess = () => {
-    setShowApplyDialog(true)
-  }
-
-  const handleSaveJob = async () => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      setShowLoginDialog(true)
-      return
-    }
-
-    try {
-      await toggleSaveJobContext(jobId)
-      setSuccess(isSaved(jobId) ? "Đã bỏ lưu việc làm" : "Đã lưu việc làm thành công!")
-      setTimeout(() => setSuccess(""), 3000)
-    } catch (error) {
-      console.error("Error saving job:", error)
-      setError("Không thể lưu việc làm. Vui lòng thử lại.")
-      setTimeout(() => setError(""), 3000)
-    }
-  }
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: job?.title,
-        text: `Xem việc làm ${job?.title} tại iWork4SE`,
-        url: window.location.href,
-      })
-    } else {
-      navigator.clipboard.writeText(window.location.href)
-      setSuccess("Đã sao chép link vào clipboard!")
-    }
-  }
-
-  if (isLoading) {
+  if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <div className="w-full max-w-2xl">
+          <div className="bg-white rounded-lg shadow-sm py-16 px-6 text-center space-y-6">
+            <div className="flex justify-center mb-8">
+              <img src="/assets/Full_logo_iwork4se.png" alt="iWork4SE" className="h-30 w-auto" />
+            </div>
 
-  if (error || !job) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Không tìm thấy việc làm</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Link href="/jobs">
-            <Button>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại danh sách
+            <div>
+              <h1 className="text-3xl font-bold text-blue-500 mb-3">Tạo mật khẩu thành công!</h1>
+              <p className="text-gray-600 text-base leading-relaxed max-w-lg mx-auto">
+                Đăng nhập ngay để bắt đầu xây dựng một hồ sơ nổi bật cho bạn và nhận được các cơ hội sự nghiệp lý tưởng
+              </p>
+            </div>
+
+            <Button
+              onClick={() => router.push("/login")}
+              className="w-full max-w-sm mx-auto h-12 text-base font-semibold bg-blue-500 hover:bg-blue-600"
+            >
+              Đăng nhập ngay
             </Button>
-          </Link>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-sm text-gray-500">© 2016. All Rights Reserved. iWork4SE Vietnam JSC.</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background px-20">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Link href="/jobs">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại danh sách việc làm
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 py-12 px-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Tạo lại mật khẩu của bạn</CardTitle>
+            <CardDescription>
+              Đăng nhập ngay để bắt đầu xây dựng một hồ sơ nổi bật cho bạn và nhận được các cơ hội sự nghiệp lý tưởng
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Job Header */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                      {job.logoUrl ? (
-                        <img
-                          src={job.logoUrl || "/placeholder.svg"}
-                          alt={job.companyName || "Company logo"}
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <Building2 className="h-6 w-6 text-primary" />
-                      )}
-                    </div>
-                    <div>
-                      <CardTitle className="text-2xl mb-2">{job.title}</CardTitle>
-                      <CardDescription className="text-lg">
-                        {job.employerName || "Công ty chưa cập nhật"}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  {/* <div className="flex items-center space-x-2">
-                    <div className="flex items-center text-yellow-500">
-                      <Star className="h-5 w-5 fill-current" />
-                      <span className="ml-1">4.8</span>
-                    </div>
-                  </div> */}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="flex items-center text-muted-foreground">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {job.location}
-                  </div>
-
-                  <div className="flex items-center text-muted-foreground">
-                    <Briefcase className="h-4 w-4 mr-2" />
-                    {job.jobType === "INTERNSHIP"
-                      ? "Internship"
-                      : job.jobType === "FRESHER"
-                        ? "Fresher"
-                        : job.jobType === "JUNIOR"
-                          ? "Junior"
-                          : job.jobType === "SENIOR"
-                            ? "Senior"
-                            : job.jobType === "MANAGER"
-                              ? "Manager"
-                              : "Không xác định"}
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <Users className="h-4 w-4 mr-2" />
-                    {job.vacancies ? `${job.vacancies} vị trí` : "Không giới hạn"}
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <DollarSign className="h-4 w-6 mr-1" />
-                    {job.minSalary && job.maxSalary
-                      ? `${formatMinSalaryShort(job.minSalary)} - ${formatSalaryShort(job.maxSalary)} VNĐ`
-                      : job.minSalary
-                        ? `Từ ${formatSalaryShort(job.minSalary)} VNĐ`
-                        : job.maxSalary
-                          ? `Đến ${formatSalaryShort(job.maxSalary)} VNĐ`
-                          : "Thỏa thuận"}
-                  </div>
-                </div>
-
-                {/* Additional Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="flex items-center text-muted-foreground">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Đăng ngày: {new Date(job.postedDate).toLocaleDateString("vi-VN")}
-                  </div>
-                  <div className="flex items-center text-muted-foreground">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Hạn nộp: {new Date(job.closingDate).toLocaleDateString("vi-VN")}
-                  </div>
-                </div>
-
-                {/* <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">React</span>
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">TypeScript</span>
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Next.js</span>
-                  <span className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-full">Node.js</span>
-                </div> */}
-              </CardContent>
-            </Card>
-
-            {/* Job Description */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Mô tả công việc</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div
-                  className="prose max-w-none"
-                  dangerouslySetInnerHTML={{ __html: formatJobDescription(job.description) }}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Job Position */}
-            {job.jobPosition && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Vị trí công việc</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose max-w-none">
-                    <p className="whitespace-pre-wrap">{job.jobPosition}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Experience */}
-            {job.experience && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Kinh nghiệm yêu cầu</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose max-w-none">
-                    <p className="whitespace-pre-wrap">{job.experience}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Apply Card */}
-            <Card>
-              <CardContent className="p-6">
-                {success && (
-                  <Alert className="mb-4 border-green-200 bg-green-50 text-green-800">
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>{success}</AlertDescription>
-                  </Alert>
-                )}
-
-                {error && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-4">
-                  <Button onClick={handleApply} className="w-full" size="lg">
-                    Ứng tuyển ngay
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    name="newPassword"
+                    type={showPasswords.new ? "text" : "password"}
+                    placeholder="Nhập mật khẩu mới"
+                    value={formData.newPassword}
+                    onChange={handleInputChange}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPasswords((prev) => ({ ...prev, new: !prev.new }))}
+                  >
+                    {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-
-                  <div className="flex space-x-2">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
-                      <Flag className={`h-4 w-4 mr-2 ${isSaved(jobId) ? "fill-yellow-500 text-yellow-500" : ""}`} />
-                      {isSaved(jobId) ? "Đã lưu" : "Lưu việc làm"}
-                    </Button>
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleShare}>
-                      <Share2 className="h-4 w-4 mr-2" />
-                      Chia sẻ
-                    </Button>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
+                <PasswordValidator password={formData.newPassword} />
+              </div>
 
-            {/* Company Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông tin công ty</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Building2 className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">{job.employerName || "Công ty chưa cập nhật"}</h3>
-                      <p className="text-sm text-muted-foreground">{job.categoryName || "Công nghệ thông tin"}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center text-muted-foreground">
-                      <Users className="h-4 w-4 mr-2" />
-                      100-500 nhân viên
-                    </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Hà Nội, Việt Nam
-                    </div>
-                    <div className="flex items-center text-muted-foreground">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Thành lập 2015
-                    </div>
-                  </div>
-
-                  <Button variant="outline" className="w-full bg-transparent">
-                    Xem trang công ty
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showPasswords.confirm ? "text" : "password"}
+                    placeholder="Nhập lại mật khẩu"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPasswords((prev) => ({ ...prev, confirm: !prev.confirm }))}
+                  >
+                    {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
-
-                  {job.employerId && employerPhone && (
-                    <EmployerChatButton
-                      employerId={job.employerId}
-                      employerName={job.employerName}
-                      employerPhone={employerPhone}
-                    />
-                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Similar Jobs */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Việc làm tương tự</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3].map((similarJob) => (
-                    <div key={similarJob} className="border-b pb-4 last:border-b-0">
-                      <h4 className="font-medium mb-1">Senior Backend Developer</h4>
-                      <p className="text-sm text-muted-foreground mb-2">TechCorp Vietnam</p>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        Hà Nội
-                        <DollarSign className="h-3 w-3 ml-4 mr-1" />
-                        20-35 triệu
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang tạo mật khẩu...
+                  </>
+                ) : (
+                  "Tạo mật khẩu mới"
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 space-y-2 text-center">
+              <p className="text-sm text-muted-foreground">
+                <a href="/login" className="text-primary hover:underline">
+                  Quay lại đăng nhập
+                </a>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Chưa có tài khoản?{" "}
+                <a href="/register" className="text-primary hover:underline">
+                  Đăng ký ngay
+                </a>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      <ApplyJobDialog open={showApplyDialog} onOpenChange={setShowApplyDialog} jobId={jobId} jobTitle={job.title} />
-
-      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} onLoginSuccess={handleLoginSuccess} />
     </div>
   )
 }

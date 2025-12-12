@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
+import PasswordValidator, { validatePassword } from "@/components/password-validator"
 
 interface StepTwoApplicantFormProps {
   formData: {
@@ -41,14 +42,20 @@ export default function StepTwoApplicantForm({
     setFormData({ ...formData, [name]: value })
   }
 
+  const handleSubmitWithValidation = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const validation = validatePassword(formData.password)
+    if (!validation.isValid) {
+      alert("Mật khẩu không đáp ứng yêu cầu. Vui lòng kiểm tra lại.")
+      return
+    }
+
+    await onSubmit()
+  }
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        onSubmit()
-      }}
-      className="space-y-3"
-    >
+    <form onSubmit={handleSubmitWithValidation} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label htmlFor="firstName" className="text-sm">
@@ -145,6 +152,7 @@ export default function StepTwoApplicantForm({
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
+        <PasswordValidator password={formData.password} />
       </div>
 
       <div className="space-y-1">
