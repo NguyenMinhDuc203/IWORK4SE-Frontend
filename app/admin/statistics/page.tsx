@@ -548,6 +548,26 @@ export default function AdminStatisticsPage() {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new()
 
+    // Get timeRange label
+    const getTimeRangeLabel = () => {
+      switch (timeRange) {
+        case "month": return "Tháng này"
+        case "quarter": return "3 tháng"
+        case "year": return "Năm nay"
+        default: return "Tất cả"
+      }
+    }
+
+    // Metadata sheet
+    const metadataData: any[][] = [
+      ["THỐNG KÊ HỆ THỐNG"],
+      ["Thời gian xuất", new Date().toLocaleString('vi-VN')],
+      ["Khoảng thời gian", getTimeRangeLabel()],
+      [""],
+    ]
+    const metadataSheet = XLSX.utils.aoa_to_sheet(metadataData)
+    XLSX.utils.book_append_sheet(wb, metadataSheet, "Thông tin")
+
     // Overview sheet
     const overviewData: any[][] = [
       ["THỐNG KÊ TỔNG QUAN"],
@@ -651,8 +671,11 @@ export default function AdminStatisticsPage() {
     const ws8 = XLSX.utils.aoa_to_sheet(salaryData)
     XLSX.utils.book_append_sheet(wb, ws8, "Phân bố lương")
 
-    // Write file
-    const fileName = `ThongKe_${new Date().toISOString().split('T')[0]}.xlsx`
+    // Write file with timeRange suffix
+    const timeRangeSuffix = timeRange === "all" ? "TatCa" : 
+                            timeRange === "month" ? "ThangNay" :
+                            timeRange === "quarter" ? "3Thang" : "NamNay"
+    const fileName = `ThongKeHeThong_${timeRangeSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`
     XLSX.writeFile(wb, fileName)
   }
 

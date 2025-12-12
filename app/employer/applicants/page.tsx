@@ -25,6 +25,7 @@ import {
   XCircle,
 } from "lucide-react"
 import { api, Application, PageMeta, normalizePageResponse } from "@/lib/api"
+import { ApplicantContactButton } from "@/components/applicant-contact-button"
 
 type StatusFilter = "ALL" | Application["status"]
 
@@ -70,6 +71,70 @@ const formatSalaryRange = (minSalary?: number, maxSalary?: number) => {
   return `${toMillions(minSalary)} - ${toMillions(maxSalary)} triệu`
 }
 
+// Wrapper component to handle lazy email fetching for ApplicantContactButton
+function ApplicantContactButtonWrapper({
+  applicantId,
+  applicantName,
+  cachedEmail,
+  onFetchEmail,
+}: {
+  applicantId: string
+  applicantName: string
+  cachedEmail?: string
+  onFetchEmail: () => Promise<string | null>
+}) {
+  const [email, setEmail] = useState<string | null>(cachedEmail || null)
+  const [isLoadingEmail, setIsLoadingEmail] = useState(false)
+
+  // Update email when cachedEmail changes
+  useEffect(() => {
+    if (cachedEmail && !email) {
+      setEmail(cachedEmail)
+    }
+  }, [cachedEmail, email])
+
+  // Fetch email proactively when component mounts if not cached
+  useEffect(() => {
+    if (!email && !isLoadingEmail) {
+      setIsLoadingEmail(true)
+      onFetchEmail().then((fetchedEmail) => {
+        if (fetchedEmail) {
+          setEmail(fetchedEmail)
+        }
+        setIsLoadingEmail(false)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Only run on mount
+
+  if (!email && isLoadingEmail) {
+    return (
+      <Button variant="outline" size="sm" disabled className="w-full">
+        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+        Đang tải...
+      </Button>
+    )
+  }
+
+  if (!email) {
+    return (
+      <Button variant="outline" size="sm" disabled className="w-full">
+        Không có email
+      </Button>
+    )
+  }
+
+  return (
+    <ApplicantContactButton
+      applicantId={applicantId}
+      applicantName={applicantName}
+      applicantEmail={email}
+      triggerSize="sm"
+      triggerVariant="outline"
+    />
+  )
+}
+
 export default function ApplicantManagementPage() {
   const router = useRouter()
   const [userType, setUserType] = useState<string | null>(null)
@@ -86,6 +151,8 @@ export default function ApplicantManagementPage() {
   const [isAppLoading, setIsAppLoading] = useState(true)
   const [applicationsError, setApplicationsError] = useState<string | null>(null)
   const [actioning, setActioning] = useState<Record<string, boolean>>({})
+  const [applicantEmails, setApplicantEmails] = useState<Record<string, string>>({})
+  const [loadingEmails, setLoadingEmails] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const role = localStorage.getItem("userType")
@@ -208,6 +275,37 @@ export default function ApplicantManagementPage() {
 
   const setLoadingFor = (id: string, value: boolean) => {
     setActioning((prev) => ({ ...prev, [id]: value }))
+  }
+
+  const fetchApplicantEmail = async (applicantId: string): Promise<string | null> => {
+    // Return cached email if available
+    if (applicantEmails[applicantId]) {
+      return applicantEmails[applicantId]
+    }
+
+    // Return null if already loading
+    if (loadingEmails[applicantId]) {
+      return null
+    }
+
+    try {
+      setLoadingEmails((prev) => ({ ...prev, [applicantId]: true }))
+      const response = await api.getApplicantById(applicantId)
+      const email = response.data?.email || ""
+      if (email) {
+        setApplicantEmails((prev) => ({ ...prev, [applicantId]: email }))
+      }
+      return email || null
+    } catch (error) {
+      console.error("Failed to fetch applicant email:", error)
+      return null
+    } finally {
+      setLoadingEmails((prev => {
+        const updated = { ...prev }
+        delete updated[applicantId]
+        return updated
+      }))
+    }
   }
 
   const handleApprove = async (id: string) => {
@@ -461,11 +559,17 @@ export default function ApplicantManagementPage() {
                         {statusLabels[application.status]}
                       </Badge>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-2">
                       <Button variant="outline" size="sm" onClick={() => handleViewCV(application)}>
                         <Eye className="h-4 w-4 mr-1" />
                         Xem CV
                       </Button>
+                      <ApplicantContactButtonWrapper
+                        applicantId={application.applicantId}
+                        applicantName={application.applicantName}
+                        onFetchEmail={() => fetchApplicantEmail(application.applicantId)}
+                        cachedEmail={applicantEmails[application.applicantId]}
+                      />
                       {application.status === "PENDING" && (
                         <>
                           <Button size="sm" onClick={() => handleApprove(application.id)} disabled={!!actioning[application.id]}>

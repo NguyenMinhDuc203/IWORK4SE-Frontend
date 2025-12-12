@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { api, Application, JobPost } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Area,
   AreaChart,
@@ -48,6 +49,7 @@ export default function EmployerStatisticsPage() {
   const [jobs, setJobs] = useState<JobPost[]>([])
   const [applications, setApplications] = useState<Application[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [timeRange, setTimeRange] = useState<"all" | "month" | "quarter" | "year">("all")
 
   useEffect(() => {
     const userType = localStorage.getItem("userType")
@@ -161,23 +163,55 @@ export default function EmployerStatisticsPage() {
       .finally(() => setIsLoading(false))
   }, [])
 
+  // Filter data by timeRange
+  const filteredData = useMemo(() => {
+    const now = new Date()
+    const filterDate = (() => {
+      switch (timeRange) {
+        case "month":
+          return new Date(now.getFullYear(), now.getMonth(), 1)
+        case "quarter":
+          return new Date(now.getFullYear(), now.getMonth() - 3, 1)
+        case "year":
+          return new Date(now.getFullYear(), 0, 1)
+        default:
+          return new Date(0)
+      }
+    })()
+
+    const filteredJobs = jobs.filter((job) => {
+      if (timeRange === "all") return true
+      const jobDate = toDateSafe(job.postedDate)
+      return jobDate && jobDate >= filterDate
+    })
+
+    const filteredApplications = applications.filter((app) => {
+      if (timeRange === "all") return true
+      const dateValue = (app as any).appliedDate || (app as any).appliedAt || (app as any).applied_date
+      const appDate = toDateSafe(dateValue)
+      return appDate && appDate >= filterDate
+    })
+
+    return { filteredJobs, filteredApplications }
+  }, [jobs, applications, timeRange])
+
   const kpi: Kpi = useMemo(() => {
     const now = new Date()
     const d30 = new Date(now)
     d30.setDate(now.getDate() - 30)
 
-    const openJobs = (jobs || []).filter((j) => j.jobStatus === "ACCEPTED").length || 0
+    const openJobs = (filteredData.filteredJobs || []).filter((j) => j.jobStatus === "ACCEPTED").length || 0
 
-    const last30 = (applications || []).filter((a) => {
+    const last30 = (filteredData.filteredApplications || []).filter((a) => {
       const dateValue = (a as any).appliedDate || (a as any).appliedAt || (a as any).applied_date
       const d = toDateSafe(dateValue)
       return d && d >= d30
     })
 
-    const pending = applications.filter((a) => (a as any).status === "PENDING").length
-    const approved = applications.filter((a) => (a as any).status === "APPROVED").length
-    const rejected = applications.filter((a) => (a as any).status === "REJECTED").length
-    const withdrawn = applications.filter((a) => (a as any).status === "WITHDRAWN").length
+    const pending = filteredData.filteredApplications.filter((a) => (a as any).status === "PENDING").length
+    const approved = filteredData.filteredApplications.filter((a) => (a as any).status === "APPROVED").length
+    const rejected = filteredData.filteredApplications.filter((a) => (a as any).status === "REJECTED").length
+    const withdrawn = filteredData.filteredApplications.filter((a) => (a as any).status === "WITHDRAWN").length
     
     console.log("[Statistics] KPI calculated:", {
       totalApplications: applications.length,
@@ -196,13 +230,13 @@ export default function EmployerStatisticsPage() {
       rejected,
       withdrawn,
     }
-  }, [jobs, applications])
+  }, [filteredData])
 
   const timeseriesApplications = useMemo(() => {
     // group by appliedDate (day)
     const counts: Record<string, number> = {}
     let skippedCount = 0
-    applications.forEach((a) => {
+    filteredData.filteredApplications.forEach((a) => {
       // Try multiple possible date fields
       const dateValue = (a as any).appliedDate || (a as any).appliedAt || (a as any).applied_date
       const d = toDateSafe(dateValue)
@@ -217,7 +251,7 @@ export default function EmployerStatisticsPage() {
       counts[key] = (counts[key] || 0) + 1
     })
     if (skippedCount > 0) {
-      console.log(`[Statistics] Skipped ${skippedCount} applications without valid dates out of ${applications.length}`)
+      console.log(`[Statistics] Skipped ${skippedCount} applications without valid dates out of ${filteredData.filteredApplications.length}`)
     }
     const result = Object.entries(counts)
       .sort((a, b) => (a[0] < b[0] ? -1 : 1))
@@ -240,7 +274,7 @@ export default function EmployerStatisticsPage() {
     }
     
     return result
-  }, [applications])
+  }, [filteredData.filteredApplications])
 
   const funnelData = useMemo(() => {
     const data = [
@@ -260,10 +294,10 @@ export default function EmployerStatisticsPage() {
 
   const byJob = useMemo(() => {
     const jobIdToJob: Record<string, JobPost> = {}
-    jobs.forEach((j) => (jobIdToJob[j.id] = j))
+    filteredData.filteredJobs.forEach((j) => (jobIdToJob[j.id] = j))
 
     const group: Record<string, { jobId: string; title: string; applicants: number; approved: number; rejected: number; pending: number }> = {}
-    applications.forEach((a) => {
+    filteredData.filteredApplications.forEach((a) => {
       // Try multiple possible job ID fields
       const jobId = (a as any).jobId || (a as any).jobPostId || (a as any).job_id
       if (!jobId) {
@@ -303,57 +337,117 @@ export default function EmployerStatisticsPage() {
     }
     
     return result
-  }, [jobs, applications])
+  }, [filteredData])
 
   const marketByLocation = useMemo(() => {
     const counts: Record<string, number> = {}
-    jobs.forEach((j) => {
+    filteredData.filteredJobs.forEach((j) => {
       const key = j.location || "Khác"
       counts[key] = (counts[key] || 0) + 1
     })
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .map(([location, count]) => ({ location, count }))
-  }, [jobs])
+  }, [filteredData.filteredJobs])
 
   const marketByCategory = useMemo(() => {
     const counts: Record<string, number> = {}
-    jobs.forEach((j) => {
+    filteredData.filteredJobs.forEach((j) => {
       const key = j.categoryName || String(j.categoryId || "Khác")
       counts[key] = (counts[key] || 0) + 1
     })
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .map(([category, count]) => ({ category, count }))
-  }, [jobs])
+  }, [filteredData.filteredJobs])
 
   function exportToExcel() {
     const wb = XLSX.utils.book_new()
-    const kpiSheet = XLSX.utils.json_to_sheet([
-      {
-        openJobs: kpi.openJobs,
-        applicantsLast30d: kpi.applicantsLast30d,
-        pending: kpi.pending,
-        approved: kpi.approved,
-        rejected: kpi.rejected,
-        withdrawn: kpi.withdrawn,
-      },
-    ])
+
+    // Get timeRange label
+    const getTimeRangeLabel = () => {
+      switch (timeRange) {
+        case "month": return "Tháng này"
+        case "quarter": return "3 tháng"
+        case "year": return "Năm nay"
+        default: return "Tất cả"
+      }
+    }
+
+    // Metadata sheet
+    const metadataData: any[][] = [
+      ["THỐNG KÊ TUYỂN DỤNG"],
+      ["Thời gian xuất", new Date().toLocaleString('vi-VN')],
+      ["Khoảng thời gian", getTimeRangeLabel()],
+      [""],
+    ]
+    const metadataSheet = XLSX.utils.aoa_to_sheet(metadataData)
+    XLSX.utils.book_append_sheet(wb, metadataSheet, "Thông tin")
+
+    // KPI sheet
+    const kpiData: any[][] = [
+      ["CHỈ SỐ KPI"],
+      ["Chỉ số", "Giá trị"],
+      ["Việc đang mở", kpi.openJobs],
+      ["Ứng viên 30 ngày", kpi.applicantsLast30d],
+      ["Chờ xem xét", kpi.pending],
+      ["Đã chấp nhận", kpi.approved],
+      ["Đã từ chối", kpi.rejected],
+      ["Đã rút đơn", kpi.withdrawn],
+    ]
+    const kpiSheet = XLSX.utils.aoa_to_sheet(kpiData)
     XLSX.utils.book_append_sheet(wb, kpiSheet, "KPI")
 
-    const byJobSheet = XLSX.utils.json_to_sheet(byJob)
-    XLSX.utils.book_append_sheet(wb, byJobSheet, "By Job")
+    // By Job sheet
+    const byJobData: any[][] = [
+      ["THỐNG KÊ THEO TIN TUYỂN DỤNG"],
+      ["Tiêu đề", "Tổng ứng viên", "Đã chấp nhận", "Đã từ chối", "Chờ xem xét"]
+    ]
+    byJob.forEach((job) => {
+      byJobData.push([job.title, job.applicants, job.approved, job.rejected, job.pending])
+    })
+    const byJobSheet = XLSX.utils.aoa_to_sheet(byJobData)
+    XLSX.utils.book_append_sheet(wb, byJobSheet, "Theo tin")
 
-    const timeseriesSheet = XLSX.utils.json_to_sheet(timeseriesApplications)
-    XLSX.utils.book_append_sheet(wb, timeseriesSheet, "Applications TS")
+    // Timeseries sheet
+    const timeseriesData: any[][] = [
+      ["ỨNG TUYỂN THEO THỜI GIAN"],
+      ["Ngày", "Số đơn"]
+    ]
+    timeseriesApplications.forEach((ts) => {
+      timeseriesData.push([ts.date, ts.count])
+    })
+    const timeseriesSheet = XLSX.utils.aoa_to_sheet(timeseriesData)
+    XLSX.utils.book_append_sheet(wb, timeseriesSheet, "Xu hướng")
 
-    const marketLocSheet = XLSX.utils.json_to_sheet(marketByLocation)
-    XLSX.utils.book_append_sheet(wb, marketLocSheet, "Market Location")
+    // Market Location sheet
+    const marketLocData: any[][] = [
+      ["PHÂN BỐ THEO ĐỊA ĐIỂM"],
+      ["Địa điểm", "Số tin"]
+    ]
+    marketByLocation.forEach((loc) => {
+      marketLocData.push([loc.location, loc.count])
+    })
+    const marketLocSheet = XLSX.utils.aoa_to_sheet(marketLocData)
+    XLSX.utils.book_append_sheet(wb, marketLocSheet, "Theo địa điểm")
 
-    const marketCatSheet = XLSX.utils.json_to_sheet(marketByCategory)
-    XLSX.utils.book_append_sheet(wb, marketCatSheet, "Market Category")
+    // Market Category sheet
+    const marketCatData: any[][] = [
+      ["PHÂN BỐ THEO NGÀNH"],
+      ["Ngành", "Số tin"]
+    ]
+    marketByCategory.forEach((cat) => {
+      marketCatData.push([cat.category, cat.count])
+    })
+    const marketCatSheet = XLSX.utils.aoa_to_sheet(marketCatData)
+    XLSX.utils.book_append_sheet(wb, marketCatSheet, "Theo ngành")
 
-    XLSX.writeFile(wb, "employer-statistics.xlsx")
+    // Generate filename with timeRange
+    const timeRangeSuffix = timeRange === "all" ? "TatCa" : 
+                            timeRange === "month" ? "ThangNay" :
+                            timeRange === "quarter" ? "3Thang" : "NamNay"
+    const fileName = `ThongKeTuyenDung_${timeRangeSuffix}_${new Date().toISOString().split('T')[0]}.xlsx`
+    XLSX.writeFile(wb, fileName)
   }
 
   if (isLoading) {
@@ -386,7 +480,18 @@ export default function EmployerStatisticsPage() {
             <h1 className="text-3xl font-bold mb-1">Thống kê tuyển dụng</h1>
             <p className="text-muted-foreground">KPI nhanh, theo tin, theo ứng viên, theo thị trường</p>
           </div>
-          <div className="space-x-2">
+          <div className="flex gap-3">
+            <Select value={timeRange} onValueChange={(v: any) => setTimeRange(v)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="month">Tháng này</SelectItem>
+                <SelectItem value="quarter">3 tháng</SelectItem>
+                <SelectItem value="year">Năm nay</SelectItem>
+              </SelectContent>
+            </Select>
             <Link href="/employer/dashboard">
               <Button variant="outline">Dashboard</Button>
             </Link>

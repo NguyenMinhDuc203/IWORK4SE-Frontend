@@ -7,6 +7,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
   MapPin,
   DollarSign,
   Building2,
@@ -18,6 +27,8 @@ import {
   ArrowLeft,
   Briefcase,
   Flag,
+  XCircle,
+  Edit,
 } from "lucide-react"
 import { api, type JobPost } from "@/lib/api"
 import { ApplyJobDialog } from "@/components/apply-job-dialog"
@@ -42,8 +53,18 @@ export default function JobDetailPage() {
 
   const [showApplyDialog, setShowApplyDialog] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [showStatusDialog, setShowStatusDialog] = useState(false)
+  const [selectedStatus, setSelectedStatus] = useState<string>("")
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
+
+  const [userType, setUserType] = useState<string | null>(null)
 
   const { isSaved, toggleSaveJob: toggleSaveJobContext } = useSavedJobs()
+
+  useEffect(() => {
+    const role = localStorage.getItem("userType")
+    setUserType(role)
+  }, [])
 
   useEffect(() => {
     if (jobId) {
@@ -170,6 +191,73 @@ export default function JobDetailPage() {
   const handleViewCompany = () => {
     if (companyId) {
       router.push(`/companies/${encodeURIComponent(companyId)}`)
+    }
+  }
+
+  const handleApproveJob = async () => {
+    if (!job) return
+    try {
+      setIsUpdatingStatus(true)
+      await api.updateJobPostStatus(job.id, "ACCEPTED")
+      setSuccess("Đã chấp nhận tin tuyển dụng thành công!")
+      setTimeout(() => setSuccess(""), 3000)
+      fetchJobDetails()
+    } catch (error: any) {
+      setError(error.message || "Không thể chấp nhận tin tuyển dụng. Vui lòng thử lại.")
+      setTimeout(() => setError(""), 3000)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleRejectJob = async () => {
+    if (!job) return
+    try {
+      setIsUpdatingStatus(true)
+      await api.updateJobPostStatus(job.id, "REJECTED")
+      setSuccess("Đã từ chối tin tuyển dụng thành công!")
+      setTimeout(() => setSuccess(""), 3000)
+      fetchJobDetails()
+    } catch (error: any) {
+      setError(error.message || "Không thể từ chối tin tuyển dụng. Vui lòng thử lại.")
+      setTimeout(() => setError(""), 3000)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const handleUpdateStatus = async () => {
+    if (!job || !selectedStatus) return
+    try {
+      setIsUpdatingStatus(true)
+      await api.updateJobPostStatus(job.id, selectedStatus)
+      setSuccess("Đã cập nhật trạng thái thành công!")
+      setTimeout(() => setSuccess(""), 3000)
+      setShowStatusDialog(false)
+      setSelectedStatus("")
+      fetchJobDetails()
+    } catch (error: any) {
+      setError(error.message || "Không thể cập nhật trạng thái. Vui lòng thử lại.")
+      setTimeout(() => setError(""), 3000)
+    } finally {
+      setIsUpdatingStatus(false)
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "ACCEPTED":
+        return "Đã duyệt"
+      case "PENDING":
+        return "Chờ duyệt"
+      case "REJECTED":
+        return "Từ chối"
+      case "EXPIRED":
+        return "Hết hạn"
+      case "DELETED":
+        return "Đã xóa"
+      default:
+        return status
     }
   }
 
@@ -345,26 +433,138 @@ export default function JobDetailPage() {
                 )}
 
                 <div className="space-y-4 py-3.5">
-                  <Button onClick={handleApply} className="w-full mb-2" size="lg">
-                    Ứng tuyển ngay
-                  </Button>
-                  {job.employerId && employerPhone && (
-                    <EmployerChatButton
-                      employerId={job.employerId}
-                      employerName={job.employerName}
-                      employerPhone={employerPhone}
-                    />
+                  {/* Admin actions */}
+                  {userType === "ADMIN" && (
+                    <>
+                      {job.jobStatus === "PENDING" && (
+                        <div className="space-y-2">
+                          <Button
+                            onClick={handleApproveJob}
+                            className="w-full"
+                            size="lg"
+                            disabled={isUpdatingStatus}
+                          >
+                            {isUpdatingStatus ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Đang xử lý...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Chấp nhận
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={handleRejectJob}
+                            className="w-full"
+                            size="lg"
+                            variant="destructive"
+                            disabled={isUpdatingStatus}
+                          >
+                            {isUpdatingStatus ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Đang xử lý...
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Từ chối
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                      {job.jobStatus === "ACCEPTED" && (
+                        <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+                          <DialogTrigger asChild>
+                            <Button className="w-full mb-2" size="lg" variant="outline">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Sửa trạng thái
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Sửa trạng thái tin tuyển dụng</DialogTitle>
+                              <DialogDescription>
+                                Chọn trạng thái mới cho tin tuyển dụng này
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Chọn trạng thái" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="PENDING">Chờ duyệt</SelectItem>
+                                  <SelectItem value="REJECTED">Từ chối</SelectItem>
+                                  <SelectItem value="EXPIRED">Hết hạn</SelectItem>
+                                  <SelectItem value="DELETED">Đã xóa</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    setShowStatusDialog(false)
+                                    setSelectedStatus("")
+                                  }}
+                                >
+                                  Hủy
+                                </Button>
+                                <Button onClick={handleUpdateStatus} disabled={!selectedStatus || isUpdatingStatus}>
+                                  {isUpdatingStatus ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Đang cập nhật...
+                                    </>
+                                  ) : (
+                                    "Cập nhật"
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </>
                   )}
-                  <div className="flex space-x-2">
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
-                      <Flag className={`h-4 w-4 mr-2 ${isSaved(jobId) ? "fill-yellow-500 text-yellow-500" : ""}`} />
-                      {isSaved(jobId) ? "Đã lưu" : "Lưu việc làm"}
-                    </Button>
-                    <Button variant="outline" className="flex-1 bg-transparent" onClick={handleShare}>
+
+                  {/* Applicant actions - only show if not admin or employer */}
+                  {userType !== "ADMIN" && userType !== "EMPLOYER" && (
+                    <>
+                      <Button onClick={handleApply} className="w-full mb-2" size="lg">
+                        Ứng tuyển ngay
+                      </Button>
+                      {job.employerId && employerPhone && (
+                        <EmployerChatButton
+                          employerId={job.employerId}
+                          employerName={job.employerName}
+                          employerPhone={employerPhone}
+                        />
+                      )}
+                      <div className="flex space-x-2">
+                        <Button variant="outline" className="flex-1 bg-transparent" onClick={handleSaveJob}>
+                          <Flag className={`h-4 w-4 mr-2 ${isSaved(jobId) ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                          {isSaved(jobId) ? "Đã lưu" : "Lưu việc làm"}
+                        </Button>
+                        <Button variant="outline" className="flex-1 bg-transparent" onClick={handleShare}>
+                          <Share2 className="h-4 w-4 mr-2" />
+                          Chia sẻ
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Share button - show for all users */}
+                  {(userType === "ADMIN" || userType === "EMPLOYER") && (
+                    <Button variant="outline" className="w-full bg-transparent" onClick={handleShare}>
                       <Share2 className="h-4 w-4 mr-2" />
                       Chia sẻ
                     </Button>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
