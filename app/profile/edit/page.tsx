@@ -12,9 +12,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Camera, X, Plus, Edit, Trash2, Loader2, CheckCircle, Shield } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { X, Plus, Edit, Trash2, Loader2, CheckCircle, Shield } from "lucide-react"
 import { api } from "@/lib/api"
+import { CVManagementSection } from "@/components/cv-management-section"
 
 interface Certificate {
   certificateName: string
@@ -405,7 +413,7 @@ export default function ProfileEditPage() {
                 disabled={isRequestingActivation}
                 variant="outline"
                 size="lg"
-                className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+                className="border-yellow-500 text-yellow-600 hover:bg-yellow-50 bg-transparent"
               >
                 {isRequestingActivation ? (
                   <>
@@ -607,6 +615,9 @@ export default function ProfileEditPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* CV Management Section */}
+          <CVManagementSection />
 
           {/* Education */}
           <Card>
@@ -945,7 +956,8 @@ export default function ProfileEditPage() {
             <DialogHeader>
               <DialogTitle>Email kích hoạt đã được gửi</DialogTitle>
               <DialogDescription>
-                Email kích hoạt tài khoản đã được gửi. Vui lòng mở hộp thư Email của bạn và nhấn vào đường dẫn kích hoạt để hoàn tất việc kích hoạt tài khoản.
+                Email kích hoạt tài khoản đã được gửi. Vui lòng mở hộp thư Email của bạn và nhấn vào đường dẫn kích hoạt
+                để hoàn tất việc kích hoạt tài khoản.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
